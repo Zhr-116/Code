@@ -1,0 +1,610 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>企业网站</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* 导航栏样式 */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #e3f2fd;
+            padding: 10px 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .logo {
+            width: 40px;
+            height: 40px;
+            background-color: #2196F3;
+            border-radius: 5px;
+            margin-right: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .company-name {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2196F3;
+        }
+
+        nav a {
+            color: #333;
+            text-decoration: none;
+            margin: 0 10px;
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        nav a:hover, nav a.active {
+            color: #2196F3;
+            background-color: rgba(33, 150, 243, 0.1);
+        }
+
+        .search-consult {
+            display: flex;
+            align-items: center;
+        }
+
+        .search-consult input {
+            padding: 6px 10px;
+            margin-right: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            transition: border-color 0.3s ease;
+        }
+
+        .search-consult input:focus {
+            border-color: #2196F3;
+            outline: none;
+        }
+
+        .search-consult button {
+            padding: 6px 15px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .search-consult button:hover {
+            background-color: #0b7dda;
+        }
+
+        /* 主内容区 */
+        .container {
+            display: flex;
+            flex: 1;
+        }
+
+        /* 最新资讯区域 - 图片作为背景 */
+        .news-banner {
+            background-color: #e9f5fe; /* 与整体色调协调的浅蓝背景 */
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 30px;
+            margin-bottom: 25px;
+            min-height: 250px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 背景图片遮罩，确保文字清晰可读 */
+        .news-banner::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.85);
+            z-index: 1;
+        }
+
+        .news-content {
+            position: relative;
+            z-index: 2;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .news-placeholder {
+            color: #888;
+            text-align: center;
+            padding: 40px 0;
+            font-size: 1.2rem;
+            font-style: italic;
+        }
+
+        .news-title {
+            font-size: 1.8rem;
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #1976D2;
+        }
+
+        .news-text {
+            margin-bottom: 20px;
+            color: #333;
+            line-height: 1.8;
+            max-width: 800px;
+        }
+
+        .news-actions {
+            text-align: right;
+            margin-top: auto;
+        }
+
+        .news-actions .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #2196F3;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 1rem;
+        }
+
+        .news-actions .btn:hover {
+            background-color: #0b7dda;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        /* 左侧栏样式 */
+        .sidebar {
+            width: 250px;
+            background-color: #e3f2fd;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+        }
+
+        .sidebar-section {
+            margin-bottom: 25px;
+            background-color: white;
+            padding: 15px;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .sidebar-section h3 {
+            margin-top: 0;
+            color: #2196F3;
+            border-bottom: 2px solid #e3f2fd;
+            padding-bottom: 8px;
+        }
+
+        .sidebar-section ul {
+            padding-left: 20px;
+        }
+
+        .sidebar-section ul li {
+            margin-bottom: 8px;
+            transition: transform 0.2s ease;
+        }
+
+        .sidebar-section ul li:hover {
+            transform: translateX(3px);
+        }
+
+        .sidebar-section a {
+            color: #2196F3;
+            text-decoration: none;
+        }
+
+        .sidebar-section a:hover {
+            text-decoration: underline;
+        }
+
+        /* 主内容区样式 */
+        .main-content {
+            flex: 1;
+            padding: 20px;
+        }
+
+        .module {
+            background-color: white;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .module-title {
+            text-align: center;
+            margin-bottom: 25px;
+            color: #333;
+            position: relative;
+            padding-bottom: 10px;
+        }
+
+        .module-title:after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background-color: #2196F3;
+        }
+
+        .services, .about-content, .cases {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .service-item, .about-item, .case-item {
+            width: 30%;
+            padding: 20px;
+            background-color: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .service-item:hover, .about-item:hover, .case-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        /* 链接样式 */
+        .view-all {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .view-more {
+            text-align: right;
+            margin-top: 15px;
+        }
+
+        .view-all a, .view-more a {
+            color: #2196F3;
+            text-decoration: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .view-all a:hover, .view-more a:hover {
+            background-color: #2196F3;
+            color: white;
+        }
+
+        /* 联系我们和咨询表单 */
+        .contact-form {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .contact-info, .form-section {
+            width: 48%;
+            background-color: white;
+            padding: 20px;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .contact-info p {
+            margin: 10px 0;
+        }
+
+        .form-section input, .form-section textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: inherit;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-section input:focus, .form-section textarea:focus {
+            border-color: #2196F3;
+            outline: none;
+        }
+
+        .form-section textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .form-section button {
+            padding: 10px 20px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .form-section button:hover {
+            background-color: #0b7dda;
+        }
+
+        /* 底部导航样式 */
+        .bottom-nav {
+            background-color: #f8f9fa;
+            padding: 20px 0;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .bottom-nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            text-align: center;
+        }
+
+        .bottom-nav-links {
+            display: inline-flex;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .bottom-nav-links a {
+            color: #555; /* 深灰色 */
+            text-decoration: none;
+            padding: 0 12px;
+            transition: color 0.3s ease;
+        }
+
+        .bottom-nav-links a:hover,
+        .bottom-nav-links a:focus {
+            color: #2196F3; /* 点击后变蓝 */
+        }
+
+        .bottom-nav-links span {
+            color: #ccc; /* 竖杠颜色 */
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 992px) {
+            .news-banner {
+                padding: 20px;
+                min-height: auto;
+            }
+            
+            .services, .about-content, .cases {
+                flex-direction: column;
+            }
+            
+            .service-item, .about-item, .case-item {
+                width: 100%;
+            }
+            
+            .contact-form {
+                flex-direction: column;
+            }
+            
+            .contact-info, .form-section {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav>
+        <div class="logo-container">
+            <div class="logo">E</div>
+            <div class="company-name">优创科技</div>
+        </div>
+        <div>
+            <a href="#" class="active">首页</a>
+            <a href="#services">服务</a>
+            <a href="#about">关于我们</a>
+            <a href="#cases">案例展示</a>
+            <a href="#reviews">客户评价</a>
+            <a href="#contact">联系我们</a>
+        </div>
+        <div class="search-consult">
+            <input type="text" placeholder="搜索...">
+            <button>立即咨询</button>
+        </div>
+    </nav>
+
+    <!-- 主容器 -->
+    <div class="container">
+        <!-- 左侧栏 -->
+        <aside class="sidebar">
+            <section class="sidebar-section">
+                <h3>公告</h3>
+                <ul>
+                    <li>公司年度会议将于下月召开</li>
+                    <li>新产品线即将发布，敬请期待</li>
+                </ul>
+                <a href="#">更多</a>
+            </section>
+            <section class="sidebar-section">
+                <h3>常见问题</h3>
+                <ul>
+                    <li>如何申请成为我们的合作伙伴？</li>
+                    <li>服务合同的有效期是多久？</li>
+                </ul>
+                <a href="#">更多</a>
+            </section>
+            <section class="sidebar-section">
+                <h3>关注我们</h3>
+                <p>微信公众号：优创科技服务号</p>
+                <p>官方微博：@优创科技</p>
+            </section>
+            <section class="sidebar-section">
+                <h3>客户评价</h3>
+                <p>张先生: 我觉得他们的服务非常好！ ★★★★★</p>
+                <p>李女士: 专业团队，值得信赖！ ★★★★☆</p>
+            </section>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- 公司最新资讯大矩形区域 - 图片作为背景 -->
+            <section class="news-banner" style="background-image: url('https://picsum.photos/1200/400?random=1');">
+                <div class="news-content">
+                    <!-- 如果没有图片，可取消下面一行的注释，并注释掉下面的标题和正文 -->
+                    <!-- <div class="news-placeholder">图片 + 最新资讯</div> -->
+                    
+                    <h2 class="news-title">最新资讯标题</h2>
+                    <p class="news-text">
+                       图片＋相关信息                    </p>
+                    <div class="news-actions">
+                        <button class="btn">了解更多</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 核心服务模块 -->
+            <section class="module" id="services">
+                <h2 class="module-title">核心服务</h2>
+                <div class="services">
+                    <div class="service-item">
+                        <h3>技术咨询</h3>
+                        <p>提供专业的技术解决方案和咨询服务，帮助企业解决技术难题，提升运营效率。</p>
+                    </div>
+                    <div class="service-item">
+                        <h3>系统开发</h3>
+                        <p>根据企业需求定制开发各类管理系统、业务平台，满足企业个性化业务需求。</p>
+                    </div>
+                    <div class="service-item">
+                        <h3>数据分析</h3>
+                        <p>通过专业数据分析工具和方法，为企业提供数据支持和决策建议，挖掘数据价值。</p>
+                    </div>
+                </div>
+                <div class="view-all">
+                    <a href="#">查看全部服务</a>
+                </div>
+            </section>
+
+            <!-- 关于我们模块 -->
+            <section class="module" id="about">
+                <h2 class="module-title">关于我们</h2>
+                <div class="about-content">
+                    <div class="about-item">
+                        <h3>企业简介</h3>
+                        <p>优创科技成立于2010年，专注于为企业提供全方位的信息技术解决方案，拥有一支专业的技术团队和丰富的行业经验。</p>
+                    </div>
+                    <div class="about-item">
+                        <h3>最新发展</h3>
+                        <p>公司近期完成B轮融资，将进一步扩大业务范围，拓展国际市场，提升核心技术研发能力。</p>
+                    </div>
+                    <div class="about-item">
+                        <h3>核心技术</h3>
+                        <p>云计算解决方案<br>
+                        大数据分析平台<br>
+                        人工智能应用系统<br>
+                        企业资源管理系统</p>
+                    </div>
+                </div>
+                <div class="view-more">
+                    <a href="#">更多</a>
+                </div>
+            </section>
+
+            <!-- 成功案例展示 -->
+            <section class="module" id="cases">
+                <h2 class="module-title">成功案例展示</h2>
+                <div class="cases">
+                    <div class="case-item">
+                        <h3>某大型制造企业ERP系统</h3>
+                        <p>为企业量身定制的ERP系统，整合了生产、销售、库存等多个环节，提升管理效率30%。</p>
+                    </div>
+                    <div class="case-item">
+                        <h3>电商平台数据分析项目</h3>
+                        <p>通过大数据分析，帮助客户优化产品结构，提升转化率，增加销售额25%。</p>
+                    </div>
+                    <div class="case-item">
+                        <h3>政府部门政务服务平台</h3>
+                        <p>开发一站式政务服务平台，简化办事流程，提高服务效率，获得用户广泛好评。</p>
+                    </div>
+                </div>
+                <div class="view-more">
+                    <a href="#">更多</a>
+                </div>
+            </section>
+
+            <!-- 联系我们 -->
+            <section class="module" id="contact">
+                <h2 class="module-title">联系我们</h2>
+                <div class="contact-form">
+                    <div class="contact-info">
+                        <h3>联系方式</h3>
+                        <p>地址：北京市海淀区科技园区88号创新大厦15层</p>
+                        <p>电话：010-12345678</p>
+                        <p>邮箱：contact@youchuang-tech.com</p>
+                        <p>工作时间：周一至周五 9:00-18:00</p>
+                    </div>
+                    <div class="form-section">
+                        <input type="text" placeholder="请输入您的姓名">
+                        <input type="email" placeholder="请输入您的联系方式">
+                        <textarea placeholder="请描述您的需求"></textarea>
+                        <button>发送咨询</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- 底部导航 -->
+    <footer class="bottom-nav">
+        <div class="bottom-nav-container">
+            <div class="bottom-nav-links">
+                <a href="#">关于我们</a>
+                <span>|</span>
+                <a href="#">可持续发展</a>
+                <span>|</span>
+                <a href="#">服务中心</a>
+                <span>|</span>
+                <a href="#">招贤纳士</a>
+                <span>|</span>
+                <a href="#">合作商</a>
+                <span>|</span>
+                <a href="#">查看更多</a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
+    
