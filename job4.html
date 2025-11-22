@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>城市书店周末活动展示</title>
+    <style>
+        body {
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+            background:  linear-gradient(135deg, #f6ede3, #fdf7f1);
+            color: #3b3025;
+            text-align: center;
+        }
+
+        .page {
+        display: inline-block;
+        background-color: #FFA54C;
+        box-shadow: 0 0 30px rgba(80, 58, 35, 0.25);
+        text-align: left;
+        max-width: 720px;
+        }
+
+        .divider {
+            height: 1px;
+            background: linear-gradient(to right, rgba(91,70,54,0), rgba(91,70,54,0.6), rgba(91,70,54,0));
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            color: #030303;
+            letter-spacing: 1px;
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        .right {
+            text-align: right;
+        }
+
+        p#intro {
+            font-size: 140%;
+            font-weight: bold;
+            color: #333333;
+        }
+
+        .intro-text {
+            line-height: 1.7;
+            letter-spacing: 0.5px;
+        }
+
+        p::first-letter {
+            font-size: 180%;
+            color: #151212;
+        }
+
+        .section-title {
+            text-align: center;
+        }
+
+        /* 表格部分 */
+        table {
+            width: 100%;
+            background-color: #fdf4e5;
+            font-size: 90%;
+        }
+
+        th {
+            background-color: #f2ddc2;
+            font-weight: bold;
+            text-align: left;
+            line-height: 2.2;
+        }
+
+        td {
+            line-height: 2.0;
+        }
+
+        /* 斑马纹行效果，让表格更易读 */
+        table tr:nth-child(even) {
+            background-color: #fbf0de;
+        }
+
+        /* 鼠标移入整行高亮显示 */
+        table tr:hover {
+            background-color: #eed8be;
+        }
+
+        div table a {
+            font-weight: bold;
+            font-size: 110%;
+            color: #333333;
+        }
+
+        /* 全局链接伪类样式 */
+        a:link {
+            color: #1b1716;
+            text-decoration: none;
+        }
+
+        a:visited {
+            color: #7a7b52;
+            text-decoration: none;
+        }
+
+        a:hover {
+            color: #e36a4c;
+            text-decoration: underline;
+        }
+
+        a:active {
+            color: #3c4f9f;
+            text-decoration: underline;
+        }
+
+        /* 带类名的链接：重点与次要链接 */
+        a.red:link {
+            color: #473430;
+        }
+
+        a.red:active {
+            color: #3046a1;
+        }
+
+        a.blue:link {
+            color: #4b7f60;
+        }
+
+        a.blue:active {
+            color: #a53aa4;
+        }
+
+        /* div 的第一行高亮 */
+        div::first-line {
+            color: #333333;
+            font-weight: bold;
+        }
+
+        /* 底部公告文字略小 */
+        .notice {
+            font-size: 90%;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <h1 class="center">城市书店：周末主题活动</h1>
+        <div class="divider"></div><br>
+        <div>
+            <h2 id="intro-text" class="center">本周主题：晨光阅读会 · Morning Reading Club</h2>
+            <p class="intro-text center">
+                本周六早7:30-9:00，城市书店邀请热爱阅读的伙伴告别懒觉，来到城市公园湖畔草坪上，在黄金晨间时光沉浸书香。
+            </p>
+            <p class="intro-text center">
+                活动现场准备了轻音乐和部分饮品，你可以带来一本喜欢的书与我们一起分享。清晨的薄雾渐散，阳光温柔洒落，带着草木的清新与空气的微凉，我们围坐一堂，暂别电子设备的纷扰，以纸质书为媒，在专注阅读中沉淀思绪，在简短分享中交换视角，让静谧的晨间时光成为滋养心灵、积蓄能量的起点，为周末添上一段充实而治愈的记忆。
+            </p>
+            <p id="intro">
+                因活动场地面积有限，我们将限制一定的活动名额。报名成功后以短信确认为准，请务必留下可联系的手机号。
+            </p>
+        </div>
+        <div class="divider"></div><br>
+        <div>
+            <h3 class="section-title">活动报名名单</h3>
+            <table>
+                <tr>
+                    <th>编号</th>
+                    <th>姓名</th>
+                    <th>联系方式</th>
+                    <th>报名状态</th>
+                </tr>
+                <tr>
+                    <td>01</td>
+                    <td><a href="https://example.com/person1">林晓冉</a></td>
+                    <td>138****6219</td>
+                    <td>已确认席位</td>
+                </tr>
+                <tr>
+                    <td>02</td>
+                    <td><a href="https://example.com/person2">Emma Watson</a></td>
+                    <td>135****8743</td>
+                    <td>已确认席位</td>
+                </tr>
+                <tr>
+                    <td>03</td>
+                    <td>陈宇辰</td>
+                    <td>136****5937</td>
+                    <td>已确认席位</td>
+                </tr>
+            </table>
+        </div>
+        <br><div class="divider"></div><br>
+
+        <div class="center">
+            <p>
+                <a class="red" href="https://hongchenwusdnu.github.io/bookstore/job4.html">查看往期活动照片</a><br>
+                <a class="blue" href="https://zhr-116.github.io/Code/job3/job3.html">在线咨询活动详情</a>
+            </p>
+        </div>
+
+        <br><div class="divider"></div><br>
+
+        <div class="notice">
+            城市书店地址：幸福路 88 号，地铁二号线“图书城站”A 口出后步行三分钟。<br>
+            营业时间：工作日 10:00 - 21:00，周末与节假日 9:30 - 22:00。<br>
+            温馨提醒：夜间活动建议提早到达现场，如需签名书请在前台登记。
+        </div>
+        <br>
+    </div>
+</body>
+</html>
