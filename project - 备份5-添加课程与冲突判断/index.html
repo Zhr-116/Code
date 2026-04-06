@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
+  <title>灵动课程表 - 完美对齐版</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-container">
+  <div class="top-bar">
+    <div class="top-info">
+        <div class="week-control-group">
+          <span class="week" id="currentWeekDisplay">📖 第1周 · 课程表</span>
+          <div class="week-nav">
+            <button id="prevWeekBtn" class="week-nav-btn">◀</button>
+            <button id="nextWeekBtn" class="week-nav-btn">▶</button>
+          </div>
+        </div>
+        <div class="date" id="currentDateDisplay">📅 日期：加载中...</div>
+    </div>
+    <div class="top-buttons">
+      <select id="semesterSelect" class="form-input" style="width: auto; height: 36px; margin: 0;"></select>
+      <button id="addSemesterBtn" class="top-btn" style="width: auto; padding: 0 12px;">+学期</button>
+      <button id="deleteSemesterBtn" class="top-btn" style="width: auto; padding: 0 12px;">🗑️</button>
+      <button class="top-btn" id="addBtn">+</button>
+      <button class="top-btn" id="settingBtn">⚙️</button>
+    </div>
+  </div>
+
+  <div class="table-scroll">
+    <div id="dynamicGrid" class="course-grid"></div>
+  </div>
+</div>
+
+<!-- 全屏设置视图（初始隐藏） -->
+<div id="fullSettingsView" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f5f7fb; z-index: 20000; overflow-y: auto;">
+  <div style="max-width: 800px; margin: 0 auto; padding: 20px;">
+    <!-- 头部：返回箭头 + 标题 -->
+    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px;">
+      <button id="backFromSettingsBtn" style="background: none; border: none; font-size: 28px; cursor: pointer; padding: 0; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">←</button>
+      <h2 style="margin: 0;">⚙️ 全局设置</h2>
+    </div>
+
+    <!-- 学期总周数 -->
+    <div class="form-item" style="background: white; border-radius: 20px; padding: 16px; margin-bottom: 24px;">
+      <label class="form-label">📅 学期总周数</label>
+      <input type="number" class="form-input" id="panelTotalWeeks" min="1" max="30" value="20" required>
+    </div>
+
+    <!-- 时间轴配置区域（可折叠） -->
+    <div style="background: white; border-radius: 20px; padding: 16px; margin-top: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0;">⏰ 时间轴配置</h3>
+        <button id="toggleTimeConfigBtn" class="unified-btn">编辑</button>
+      </div>
+      <div id="timeConfigPanel" style="display: none; margin-top: 12px;">
+        <!-- 自动生成区域 -->
+        <div style="background: #f8fafd; border-radius: 16px; padding: 12px; margin-bottom: 16px;">
+          <div style="font-weight: 500; margin-bottom: 8px;">⚡ 自动生成时间轴</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;">
+            <div class="form-item" style="margin-bottom: 0; flex: 1;">
+              <label style="display: block; font-size: 12px;">首节课开始</label>
+              <input type="text" id="autoStartTime" class="form-input" value="08:00" style="height: 36px;">
+            </div>
+            <div class="form-item" style="margin-bottom: 0; flex: 1;">
+              <label style="display: block; font-size: 12px;">每节课时长(分钟)</label>
+              <input type="number" id="autoDuration" value="45" min="1" class="form-input" style="height: 36px;">
+            </div>
+            <div class="form-item" style="margin-bottom: 0; flex: 1;">
+              <label style="display: block; font-size: 12px;">课间休息(分钟)</label>
+              <input type="number" id="autoBreak" value="10" min="0" class="form-input" style="height: 36px;">
+            </div>
+            <div class="form-item" style="margin-bottom: 0; flex: 1;">
+              <label style="display: block; font-size: 12px;">节次数</label>
+              <input type="number" id="autoSectionCount" value="8" min="1" class="form-input" style="height: 36px;">
+            </div>
+            <button id="generateTimeAxisBtn" class="unified-btn" style="height: 36px;">生成</button>
+          </div>
+        </div>
+        <!-- 节次列表 -->
+        <div id="timeConfigList" style="margin-bottom: 12px;"></div>
+        <button id="addTimeSlotBtn" class="unified-btn" style="margin-top: 8px;">+ 添加节次</button>
+      </div>
+    </div>
+
+    <!-- 课程列表区域（白色卡片，与时间轴样式统一） -->
+    <div style="background: white; border-radius: 20px; padding: 16px; margin-top: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h3 style="margin: 0;">📚 课程列表</h3>
+        <button id="addNewCourseBtn" class="unified-btn" style="padding: 4px 16px;">+ 添加课程</button>
+      </div>
+      <div id="panelCourseGroupsContainer"></div>
+    </div>
+
+
+    <!-- 底部保存按钮 -->
+    <div style="margin-top: 32px; padding-bottom: 40px;">
+      <button id="panelSaveSettingsBtn" class="modal-btn confirm" style="width: 100%;">保存</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- 添加/编辑课程弹窗 -->
+<div class="modal" id="courseModal">
+  <div class="modal-content">
+    <div class="modal-title" id="modalTitle">添加课程</div>
+    <form id="courseForm">
+      <div class="form-item">
+        <label class="form-label">📖 课程名称</label>
+        <input type="text" class="form-input" id="courseName" placeholder="例：高等数学" required onblur="autoMatchColor()">
+      </div>
+      <div class="form-item">
+        <label class="form-label">👩‍🏫 授课老师</label>
+        <input type="text" class="form-input" id="courseTeacher" placeholder="选填">
+      </div>
+      <div class="form-item">
+        <label class="form-label">🏫 教室</label>
+        <input type="text" class="form-input" id="courseRoom" placeholder="如：A101" required>
+      </div>
+      <div class="form-item">
+        <label class="form-label">📅 星期</label>
+        <select class="form-select" id="courseWeek" required>
+          <option value="">请选择</option>
+          <option value="一">星期一</option><option value="二">星期二</option><option value="三">星期三</option>
+          <option value="四">星期四</option><option value="五">星期五</option><option value="六">星期六</option><option value="日">星期日</option>
+        </select>
+      </div>
+      <div class="form-item">
+        <label class="form-label">⏰ 节次</label>
+        <select class="form-select" id="courseSection" required></select>
+      </div>
+      <div class="form-item">
+        <label class="form-label">🎨 课程颜色</label>
+        <input type="color" class="form-input group-color" value="#2b6ef0" style="flex: 1; min-width: 50px;">
+      </div>
+      <div class="form-item" id="syncColorOption">
+        <label class="form-label">
+            <input type="checkbox" id="syncColorToAll"> 应用到所有同名课程
+        </label>
+      </div>
+      <div class="modal-buttons">
+        <button type="button" class="modal-btn cancel" id="closeCourseModalBtn">取消</button>
+        <button type="submit" class="modal-btn confirm">保存课程</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 编辑时间轴弹窗 -->
+<div class="modal" id="editTimeModal">
+  <div class="modal-content">
+    <div class="modal-title">⏱️ 编辑节次时间</div>
+    <form id="timeForm">
+      <div class="form-item">
+        <label class="form-label">节次名称 (例如: 1, 1-2节)</label>
+        <input type="text" class="form-input" id="editSection" placeholder="第1节" required>
+      </div>
+      <div class="form-item">
+        <label class="form-label">上课时间 (例如: 8:00-9:00)</label>
+        <input type="text" class="form-input" id="editTime" placeholder="8:00-9:00" required>
+      </div>
+      <div class="modal-buttons">
+        <button type="button" class="modal-btn cancel" id="cancelEditTimeBtn">取消</button>
+        <button type="submit" class="modal-btn confirm">保存修改</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 课程详情弹窗 -->
+<div class="modal" id="courseInfoModal">
+  <div class="modal-content">
+    <div class="modal-title">📘 课程详情</div>
+    <div id="courseInfoContent" style="margin-bottom: 24px; line-height: 1.6;"></div>
+    <div class="modal-buttons">
+      <button type="button" class="modal-btn cancel" id="closeInfoModalBtn">关闭</button>
+      <button type="button" class="modal-btn confirm" id="editFromInfoBtn">✏️ 编辑</button>
+      <button type="button" class="modal-btn cancel" id="deleteFromInfoBtn" style="background:#fde2e2; color:#c00;">🗑️ 删除</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+<!-- flatpickr 样式 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<!-- flatpickr JS -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<script src="script.js"></script>
+</body>
+</html>

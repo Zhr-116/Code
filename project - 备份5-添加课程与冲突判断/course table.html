@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
+  <title>灵动课程表 - 完美对齐版</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: system-ui, "Segoe UI", "微软雅黑", Roboto, Arial, sans-serif;
+    }
+
+    body {
+      background: #eef2f7;
+      padding: 16px;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* 卡片容器 */
+    .app-container {
+      max-width: 1300px;
+      width: 100%;
+      background: white;
+      border-radius: 28px;
+      box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      transition: all 0.2s;
+    }
+
+    /* 顶部栏 */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 24px;
+      background: #ffffff;
+      border-bottom: 1px solid #eef2f6;
+    }
+    .top-info .week {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1a2634;
+      letter-spacing: -0.3px;
+    }
+    .top-info .date {
+      font-size: 13px;
+      color: #5c6f87;
+      margin-top: 4px;
+    }
+    .top-buttons {
+      display: flex;
+      gap: 12px;
+    }
+    .top-btn {
+      width: 46px;
+      height: 46px;
+      border-radius: 24px;
+      background: #f0f4fa;
+      color: #2c6eef;
+      font-size: 22px;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+      transition: 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    }
+    .top-btn:active { transform: scale(0.96); background: #e2e8f0; }
+    .top-btn#settingBtn { font-size: 18px; font-weight: normal; }
+
+    /* 课表外层滚动容器 */
+    .table-scroll {
+      overflow-x: auto;
+      overflow-y: auto;
+      max-height: 70vh;
+      padding: 0 0 12px 0;
+      background: #fff;
+    }
+
+    /* 核心网格布局 — 完美对齐, 无偏移 */
+    .course-grid {
+      display: grid;
+      min-width: 700px;
+      background: white;
+      border: 1px solid #e9edf2;
+      border-radius: 18px;
+      overflow: hidden;
+      margin: 0 20px 20px 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+    }
+
+    /* 通用单元格样式 */
+    .grid-cell {
+      border-right: 1px solid #eff2f8;
+      border-bottom: 1px solid #eff2f8;
+      background: white;
+      transition: background 0.1s ease;
+    }
+
+    /* 左上角斜线容器 (特殊样式) */
+    .corner-cell {
+      background: #fbfdff;
+      position: relative;
+      overflow: hidden;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .split-line {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(to bottom right, transparent 49.5%, #cfdde6 49.5%, #cfdde6 50.5%, transparent 50.5%);
+    }
+    .corner-text {
+      position: absolute;
+      font-size: 11px;
+      font-weight: 500;
+      color: #2c6eef;
+    }
+    .text-week {
+      bottom: 6px;
+      right: 8px;
+      font-weight: 600;
+      background: rgba(255,255,240,0.7);
+      padding: 2px 4px;
+      border-radius: 20px;
+      font-size: 10px;
+    }
+    .text-time {
+      top: 6px;
+      left: 8px;
+      font-weight: 600;
+      background: rgba(255,255,240,0.7);
+      padding: 2px 4px;
+      border-radius: 20px;
+      font-size: 10px;
+    }
+
+    /* 星期标题 */
+    .week-header {
+      background: #f8fafd;
+      font-weight: 700;
+      font-size: 15px;
+      color: #1f2a44;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid #eef2f8;
+      border-right: 1px solid #eef2f8;
+    }
+
+    /* 左侧时间轴单元格 */
+    .time-header-cell {
+      background: #fafcff;
+      font-weight: 600;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      line-height: 1.35;
+      cursor: pointer;
+      transition: background 0.15s;
+      border-bottom: 1px solid #eff2f8;
+      border-right: 1px solid #eff2f8;
+    }
+    .time-header-cell:hover {
+      background: #ecf5ff;
+    }
+    .time-section {
+      font-size: 14px;
+      font-weight: 800;
+      color: #1e2b3c;
+    }
+    .time-detail {
+      font-size: 10px;
+      color: #76879e;
+      margin-top: 3px;
+    }
+
+    /* 课程卡片 */
+    .course-card {
+      width: 100%;
+      height: 100%;
+      /* background: linear-gradient(135deg, #2b6ef0 0%, #1a5ad6 100%); */
+      color: white;
+      border-radius: 12px;
+      padding: 6px 4px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      font-size: 11px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+      transition: transform 0.1s, filter 0.1s;
+      cursor: pointer;
+      word-break: break-word;
+    }
+    .course-card .c-name {
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 3px;
+      letter-spacing: 0.3px;
+    }
+    .course-card .c-info {
+      font-size: 11px;
+      opacity: 0.9;
+    }
+    .course-card:active {
+      transform: scale(0.97);
+      filter: brightness(0.95);
+    }
+
+    /* 空白可添加区域 */
+    .empty-cell {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #b9c4d1;
+      font-size: 18px;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .empty-cell:hover {
+      background: #f0f6fe;
+      color: #2c6eef;
+    }
+
+    /* 弹窗复用原有样式, 微调 */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(3px);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+    }
+    .modal.show { display: flex; }
+    .modal-content {
+      width: 90%;
+      max-width: 420px;
+      background: #fff;
+      border-radius: 28px;
+      padding: 24px 22px;
+      box-shadow: 0 30px 40px rgba(0,0,0,0.2);
+      animation: fadeScale 0.2s ease;
+    }
+    @keyframes fadeScale {
+      from { opacity: 0; transform: scale(0.96);}
+      to { opacity: 1; transform: scale(1);}
+    }
+    .modal-title {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      text-align: center;
+      color: #1f2b38;
+    }
+    .form-item { margin-bottom: 18px; }
+    .form-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: #2c3e50;
+    }
+    .form-input, .form-select {
+      width: 100%;
+      height: 46px;
+      border: 1px solid #dce3ec;
+      border-radius: 20px;
+      padding: 0 16px;
+      font-size: 15px;
+      background: #fefefe;
+      transition: 0.2s;
+    }
+    .form-input:focus, .form-select:focus {
+      border-color: #2c6eef;
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(44,110,239,0.2);
+    }
+    .modal-buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 28px;
+    }
+    .modal-btn {
+      flex: 1;
+      height: 48px;
+      border-radius: 40px;
+      font-weight: 600;
+      font-size: 16px;
+      border: none;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .modal-btn.cancel {
+      background: #f1f4f9;
+      color: #4a5b6e;
+    }
+    .modal-btn.confirm {
+      background: #2c6eef;
+      color: white;
+      box-shadow: 0 4px 8px rgba(44,110,239,0.25);
+    }
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.75);
+      color: white;
+      padding: 8px 20px;
+      border-radius: 60px;
+      font-size: 14px;
+      z-index: 10001;
+      display: none;
+      backdrop-filter: blur(4px);
+    }
+    .toast.show { display: block; animation: fadeInUp 0.2s; }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateX(-50%) translateY(10px);}
+      to { opacity: 1; transform: translateX(-50%) translateY(0);}
+    }
+    /* 删除/编辑轻提示 */
+    .cell-tools-hint {
+      display: none;
+    }
+    .week-control-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    }
+    .week-nav {
+        display: flex;
+        gap: 6px;
+    }
+    .week-nav-btn {
+        background: #f0f4fa;
+        border: none;
+        width: 28px;
+        height: 28px;
+        border-radius: 20px;
+        font-size: 14px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: 0.2s;
+    }
+    .week-nav-btn:hover {
+        background: #e2e8f0;
+    }
+    .week-nav-btn:active {
+        transform: scale(0.94);
+    }
+  </style>
+</head>
+<body>
+<div class="app-container">
+  <div class="top-bar">
+    <div class="top-info">
+        <div class="week-control-group">
+          <span class="week" id="currentWeekDisplay">📖 第1周 · 课程表</span>
+          <div class="week-nav">
+            <button id="prevWeekBtn" class="week-nav-btn">◀</button>
+            <button id="nextWeekBtn" class="week-nav-btn">▶</button>
+          </div>
+        </div>
+        <div class="date" id="currentDateDisplay">📅 日期：加载中...</div>
+    </div>
+    <div class="top-buttons">
+      <button class="top-btn" id="addBtn">+</button>
+      <button class="top-btn" id="settingBtn">⚙️</button>
+    </div>
+  </div>
+
+  <div class="table-scroll">
+    <div id="dynamicGrid" class="course-grid"></div>
+  </div>
+</div>
+<div class="modal" id="settingsModal">
+  <div class="modal-content">
+    <div class="modal-title">⚙️ 全局设置</div>
+    <form id="settingsForm">
+      <div class="form-item">
+        <label class="form-label">📅 学期总周数</label>
+        <input type="number" class="form-input" id="totalWeeks" min="1" max="30" value="20" required>
+      </div>
+      <div class="modal-buttons">
+        <button type="button" class="modal-btn cancel" id="closeSettingsBtn">取消</button>
+        <button type="submit" class="modal-btn confirm">保存</button>
+      </div>
+    </form>
+  </div>
+</div>
+<!-- 添加/编辑课程弹窗（复用） -->
+<div class="modal" id="courseModal">
+  <div class="modal-content">
+    <div class="modal-title" id="modalTitle">添加课程</div>
+    <form id="courseForm">
+      <div class="form-item">
+        <label class="form-label">📖 课程名称</label>
+        <input type="text" class="form-input" id="courseName" placeholder="例：高等数学" required onblur="autoMatchColor()">
+      </div>
+      <div class="form-item">
+        <label class="form-label">👩‍🏫 授课老师</label>
+        <input type="text" class="form-input" id="courseTeacher" placeholder="选填">
+      </div>
+      <div class="form-item">
+        <label class="form-label">🏫 教室</label>
+        <input type="text" class="form-input" id="courseRoom" placeholder="如：A101" required>
+      </div>
+      <div class="form-item">
+        <label class="form-label">📅 星期</label>
+        <select class="form-select" id="courseWeek" required>
+          <option value="">请选择</option>
+          <option value="一">星期一</option><option value="二">星期二</option><option value="三">星期三</option>
+          <option value="四">星期四</option><option value="五">星期五</option><option value="六">星期六</option><option value="日">星期日</option>
+        </select>
+      </div>
+      <div class="form-item">
+        <label class="form-label">⏰ 节次</label>
+        <select class="form-select" id="courseSection" required></select>
+      </div>
+      <div class="form-item">
+        <label class="form-label">🎨 课程颜色</label>
+        <input type="color" class="form-input" id="courseColor" value="#2b6ef0">
+      </div>
+      <div class="form-item" id="syncColorOption">
+        <label class="form-label">
+            <input type="checkbox" id="syncColorToAll"> 应用到所有同名课程
+        </label>
+      </div>
+      <div class="modal-buttons">
+        <button type="button" class="modal-btn cancel" id="closeCourseModalBtn">取消</button>
+        <button type="submit" class="modal-btn confirm">保存课程</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 编辑时间轴弹窗 -->
+<div class="modal" id="editTimeModal">
+  <div class="modal-content">
+    <div class="modal-title">⏱️ 编辑节次时间</div>
+    <form id="timeForm">
+      <div class="form-item">
+        <label class="form-label">节次名称 (例如: 1, 1-2节)</label>
+        <input type="text" class="form-input" id="editSection" placeholder="第1节" required>
+      </div>
+      <div class="form-item">
+        <label class="form-label">上课时间 (例如: 8:00-9:00)</label>
+        <input type="text" class="form-input" id="editTime" placeholder="8:00-9:00" required>
+      </div>
+      <div class="modal-buttons">
+        <button type="button" class="modal-btn cancel" id="cancelEditTimeBtn">取消</button>
+        <button type="submit" class="modal-btn confirm">保存修改</button>
+      </div>
+    </form>
+  </div>
+</div>
+<!-- 课程详情弹窗（只读信息 + 操作按钮） -->
+<div class="modal" id="courseInfoModal">
+  <div class="modal-content">
+    <div class="modal-title">📘 课程详情</div>
+    <div id="courseInfoContent" style="margin-bottom: 24px; line-height: 1.6;">
+      <!-- 动态填充课程信息 -->
+    </div>
+    <div class="modal-buttons">
+      <button type="button" class="modal-btn cancel" id="closeInfoModalBtn">关闭</button>
+      <button type="button" class="modal-btn confirm" id="editFromInfoBtn">✏️ 编辑</button>
+      <button type="button" class="modal-btn cancel" id="deleteFromInfoBtn" style="background:#fde2e2; color:#c00;">🗑️ 删除</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+  // ---------- 全局数据 ----------
+  let currentWeek = 1;        // 当前显示第几周
+  let MAX_WEEK = 20;        // 最大周数，可调整
+  let timeConfig = JSON.parse(localStorage.getItem('courseTimeConfig')) || [
+    { section: "1", time: "8:00-9:00" },
+    { section: "2", time: "9:10-10:00" },
+    { section: "3", time: "10:10-11:00" },
+    { section: "4", time: "11:10-12:00" },
+    { section: "5", time: "14:00-15:00" },
+    { section: "6", time: "15:10-16:00" },
+    { section: "7", time: "16:10-17:00" },
+    { section: "8", time: "19:00-20:00" }
+  ];
+  let allCourses = JSON.parse(localStorage.getItem('myCourses')) || [];
+  // 迁移：给没有 weekNum 的课程设置默认周次 1
+  allCourses = allCourses.map(c => {
+    if (c.weekNum === undefined) {
+        c.weekNum = 1;
+    }
+    return c;
+  });
+  // 如果需要，立即保存回去
+  localStorage.setItem('myCourses', JSON.stringify(allCourses));
+  const weeks = ["一", "二", "三", "四", "五", "六", "日"];
+  
+  // 编辑课程时的临时ID (null表示添加模式)
+  let editingCourseId = null;
+  let currentTimeEditIndex = -1;
+  let currentViewingCourse = null;
+
+  // 辅助函数: 显示提示
+  function showToast(msg, duration = 1800) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), duration);
+  }
+  // 自动匹配颜色：当课程名输入框失去焦点时，查找同名课程并自动填充颜色
+  function autoMatchColor() {
+    const name = document.getElementById('courseName').value.trim();
+    if (!name) return;
+    // 查找所有同名课程（取最后一个，即最近添加的）
+    const matchedCourses = allCourses.filter(c => c.name === name);
+    if (matchedCourses.length > 0) {
+        const lastCourse = matchedCourses[matchedCourses.length - 1];
+        if (lastCourse.color) {
+            document.getElementById('courseColor').value = lastCourse.color;
+            showToast(`已自动匹配“${name}”的颜色`, 1200);
+        }
+    }
+  }
+
+  // 更新星期/日期显示
+  function updateTopDate() {
+    const now = new Date();
+    const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    const dayOfWeek = weekdays[now.getDay()];
+    const dateStr = `${now.getMonth()+1}月${now.getDate()}日 ${dayOfWeek}`;
+    document.getElementById('currentDateDisplay').innerText = `📅 ${dateStr}`;
+    // 粗略周次(根据开学预估或固定第一周，可自行扩展)
+    document.getElementById('currentWeekDisplay').innerHTML = `📖 第${currentWeek}周 · 课程表`;
+  }
+
+  // 更新添加/编辑弹窗中的节次下拉框
+  function updateSectionSelectInModal() {
+    const select = document.getElementById('courseSection');
+    select.innerHTML = '<option value="">请选择节次</option>';
+    timeConfig.forEach((item, idx) => {
+      const option = document.createElement('option');
+      option.value = idx + 1;   // 节次索引 1~N
+      option.textContent = `${item.section}  (${item.time})`;
+      select.appendChild(option);
+    });
+  }
+
+  // 核心: 渲染完整grid表格 (完美对齐，左上角斜线)
+  function renderFullTable() {
+    // 过滤出当前周的课程
+    const currentWeekCourses = allCourses.filter(c => c.weekNum === currentWeek);
+    const container = document.getElementById('dynamicGrid');
+    if (!container) return;
+    const rowsCount = timeConfig.length;      // 节次行数
+    const colsCount = weeks.length;           // 7列星期
+    
+    // 设置grid模板: 第一列宽度固定为100px(时间轴宽)，后面7列平分剩余宽度(最小90px)
+    // 使用 minmax(90px, 1fr) 使星期列自适应，且对齐完美
+    let colTemplate = `100px repeat(${colsCount}, minmax(92px, 1fr))`;
+    let rowTemplate = `56px repeat(${rowsCount}, 78px)`;
+    container.style.display = 'grid';
+    container.style.gridTemplateColumns = colTemplate;
+    container.style.gridTemplateRows = rowTemplate;
+    container.style.border = '1px solid #eef2f8';
+    container.style.borderRadius = '20px';
+    
+    // 清空容器，采用网格填充
+    container.innerHTML = '';
+    
+    // 1. 左上角 (0,0) 斜线区域
+    const cornerDiv = document.createElement('div');
+    cornerDiv.className = 'grid-cell corner-cell';
+    cornerDiv.style.gridRow = '1 / 2';
+    cornerDiv.style.gridColumn = '1 / 2';
+    cornerDiv.style.borderBottom = '1px solid #eef2f8';
+    cornerDiv.style.borderRight = '1px solid #eef2f8';
+    cornerDiv.style.background = '#ffffff';
+    cornerDiv.innerHTML = `
+      <div class="split-line" style="width:100%; height:100%; position:relative;">
+        <div class="corner-text text-week">星期</div>
+        <div class="corner-text text-time">节次</div>
+      </div>
+    `;
+    container.appendChild(cornerDiv);
+    
+    // 2. 星期标题行 (第1行，列索引从2开始)
+    for (let c = 0; c < colsCount; c++) {
+      const weekCell = document.createElement('div');
+      weekCell.className = 'grid-cell week-header';
+      weekCell.style.gridRow = '1 / 2';
+      weekCell.style.gridColumn = `${c + 2} / ${c + 3}`;
+      weekCell.style.borderBottom = '1px solid #eef2f8';
+      weekCell.style.borderRight = c === colsCount-1 ? 'none' : '1px solid #eef2f8';
+      weekCell.innerText = weeks[c];
+      container.appendChild(weekCell);
+    }
+    
+    // 3. 左侧时间轴 + 右侧课程格子
+    for (let row = 0; row < rowsCount; row++) {
+      const sectionIdx = row;   // 节次索引0起
+      const sectionNum = sectionIdx + 1;   // 存储数据库对应的section值 (1~N)
+      const timeItem = timeConfig[sectionIdx];
+      
+      // 3.1 时间轴单元格
+      const timeCell = document.createElement('div');
+      timeCell.className = 'grid-cell time-header-cell';
+      timeCell.style.gridRow = `${row + 2} / ${row + 3}`;
+      timeCell.style.gridColumn = '1 / 2';
+      timeCell.style.borderRight = '1px solid #eef2f8';
+      timeCell.style.borderBottom = (row === rowsCount-1) ? 'none' : '1px solid #eef2f8';
+      timeCell.innerHTML = `
+        <div class="time-section">${escapeHtml(timeItem.section)}</div>
+        <div class="time-detail">${escapeHtml(timeItem.time)}</div>
+      `;
+      // 绑定时间轴编辑事件 (点击修改节次时间)
+      timeCell.addEventListener('click', (e) => {
+        e.stopPropagation();
+        currentTimeEditIndex = sectionIdx;
+        document.getElementById('editSection').value = timeConfig[sectionIdx].section;
+        document.getElementById('editTime').value = timeConfig[sectionIdx].time;
+        openModal('editTimeModal');
+      });
+      container.appendChild(timeCell);
+      
+      // 3.2 星期列课程格子
+      for (let col = 0; col < colsCount; col++) {
+        const weekVal = weeks[col];
+        const cell = document.createElement('div');
+        cell.className = 'grid-cell';
+        cell.style.gridRow = `${row + 2} / ${row + 3}`;
+        cell.style.gridColumn = `${col + 2} / ${col + 3}`;
+        cell.style.borderBottom = (row === rowsCount-1) ? 'none' : '1px solid #eef2f8';
+        cell.style.borderRight = (col === colsCount-1) ? 'none' : '1px solid #eef2f8';
+        cell.style.padding = '4px';
+        cell.style.cursor = 'pointer';
+        
+        // 查找当前格子的课程
+        const course = currentWeekCourses.find(c => c.week === weekVal && Number(c.section) === sectionNum);
+        if (course) {
+          // 已有课程：展示课程卡片
+          const card = document.createElement('div');
+          card.className = 'course-card';
+          card.innerHTML = `
+            <div class="c-name">${escapeHtml(course.name)}</div>
+            <div class="c-info">${escapeHtml(course.teacher || '老师')} | ${escapeHtml(course.room)}</div>
+          `;
+          const bgColor = course.color || '#2b6ef0';
+          card.style.backgroundColor = bgColor;
+          cell.appendChild(card);
+          // 点击课程卡片进行编辑/删除 (增强交互)
+          cell.addEventListener('click', (e) => {
+            e.stopPropagation();
+            handleCourseAction(course);
+          });
+        } else {
+          // 空单元格: 显示加号占位，点击添加课程
+          const emptyDiv = document.createElement('div');
+          emptyDiv.className = 'empty-cell';
+          emptyDiv.innerHTML = '＋';
+          cell.appendChild(emptyDiv);
+          cell.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openAddCourseModal(weekVal, sectionNum);
+          });
+        }
+        container.appendChild(cell);
+      }
+    }
+  }
+  
+  
+  function handleCourseAction(course) {
+    currentViewingCourse = course; // 保存供编辑/删除使用
+    
+    // 构建详情内容
+    const weekMap = { '一':'星期一','二':'星期二','三':'星期三','四':'星期四','五':'星期五','六':'星期六','日':'星期日' };
+    const weekStr = weekMap[course.week] || course.week;
+    const sectionIndex = course.section; // 节次序号
+    const sectionInfo = timeConfig[sectionIndex-1] || { section: sectionIndex, time: '' };
+    const timeStr = sectionInfo.time ? ` (${sectionInfo.time})` : '';
+    
+    const infoHtml = `
+        <p><strong>📖 课程名称：</strong> ${escapeHtml(course.name)}</p>
+        <p><strong>👩‍🏫 授课老师：</strong> ${escapeHtml(course.teacher || '未填')}</p>
+        <p><strong>🏫 教室：</strong> ${escapeHtml(course.room)}</p>
+        <p><strong>📅 星期：</strong> ${weekStr}</p>
+        <p><strong>⏰ 节次：</strong> ${sectionInfo.section}${timeStr}</p>
+    `;
+    document.getElementById('courseInfoContent').innerHTML = infoHtml;
+    
+    openModal('courseInfoModal');
+  }
+  
+  // 打开添加课程弹窗 (自动预填星期&节次)
+  function openAddCourseModal(week, sectionNum) {
+    editingCourseId = null;
+    document.getElementById('modalTitle').innerText = '添加课程';
+    document.getElementById('courseForm').reset();
+    document.getElementById('syncColorOption').style.display = 'none'; // 隐藏
+    document.getElementById('syncColorToAll').checked = false;
+    document.getElementById('courseWeek').value = week;
+    // 节次下拉选项加载最新timeConfig
+    updateSectionSelectInModal();
+    document.getElementById('courseSection').value = sectionNum;
+    openModal('courseModal');
+  }
+  
+  // 新增空白添加方式：点击右上角+
+  function handleAddByPlus() {
+    editingCourseId = null;
+    document.getElementById('modalTitle').innerText = '添加课程';
+    document.getElementById('courseForm').reset();
+    updateSectionSelectInModal();
+    document.getElementById('courseWeek').value = '';
+    document.getElementById('courseSection').value = '';
+    openModal('courseModal');
+  }
+  
+  // 保存课程 (添加或更新)
+  function saveCourseFromModal(e) {
+    e.preventDefault();
+    const name = document.getElementById('courseName').value.trim();
+    const teacher = document.getElementById('courseTeacher').value.trim() || '';
+    const room = document.getElementById('courseRoom').value.trim();
+    const week = document.getElementById('courseWeek').value;
+    const section = document.getElementById('courseSection').value;
+    
+    if (!name || !week || !section || !room) {
+      showToast('请填写完整信息 (课程名/星期/节次/教室)');
+      return;
+    }
+    if (editingCourseId) {
+      // 编辑模式：更新
+      let editedColor = document.getElementById('courseColor').value;
+      const index = allCourses.findIndex(c => c.id === editingCourseId);
+      if (index !== -1) {
+        // 编辑时也要读取颜色选择器的值
+        allCourses[index] = { 
+            ...allCourses[index], 
+            name, teacher, room, week, 
+            section: Number(section),
+            color: editedColor,
+            id: editingCourseId
+        };
+        showToast('课程已更新');
+      }
+      console.log('同步时使用的原始课程名:', window.originalCourseName);
+      if (document.getElementById('syncColorToAll').checked) {
+        const newColor = editedColor;
+        const targetName = window.originalCourseName; // 使用原始课程名
+        if (targetName) {
+            allCourses.forEach(c => {
+                if (c.name === targetName) {
+                    c.color = newColor;
+                }
+            });
+            showToast(`已将“${targetName}”的所有课程颜色统一`, 1500);
+        }
+      }
+      delete window.originalCourseName;
+    } else {
+      // 新增，检查是否重复 (同一星期&节次)
+      const exist = allCourses.some(c => c.week === week && Number(c.section) === Number(section));
+      if (exist) {
+        showToast(`⚠️ 星期${week} 第${section}节已有课程，请先删除再添加`, 2000);
+        return;
+      }
+      // 获取用户选择的颜色，如果没有则根据课程名自动匹配或使用默认色
+      let selectedColor = document.getElementById('courseColor').value;
+      if (!selectedColor) {
+    // 自动匹配逻辑：查找同名的已有课程的颜色（取最近添加的）
+        const sameNameCourse = [...allCourses].reverse().find(c => c.name === name);
+        selectedColor = sameNameCourse ? sameNameCourse.color : '#2b6ef0';
+      }
+      const newCourse = {
+          id: Date.now(),
+          name, teacher, room, week,
+          section: Number(section),
+          color: selectedColor,
+          weekNum: currentWeek   // 记录属于第几周
+      };
+      allCourses.push(newCourse);
+      showToast(`✅ 添加成功: ${name}`);
+    }
+    localStorage.setItem('myCourses', JSON.stringify(allCourses));
+    closeModal('courseModal');
+    renderFullTable();
+  }
+  
+  // 时间轴保存
+  function handleTimeEdit(e) {
+    e.preventDefault();
+    if (currentTimeEditIndex === -1) return;
+    const newSection = document.getElementById('editSection').value.trim();
+    const newTime = document.getElementById('editTime').value.trim();
+    if (!newSection || !newTime) {
+      showToast('节次名称和时间不能为空');
+      return;
+    }
+    timeConfig[currentTimeEditIndex] = { section: newSection, time: newTime };
+    localStorage.setItem('courseTimeConfig', JSON.stringify(timeConfig));
+    renderFullTable();
+    closeModal('editTimeModal');
+    showToast('时间轴已更新');
+  }
+  
+  // 辅助 escapeHtml
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+      if (m === '&') return '&amp;';
+      if (m === '<') return '&lt;';
+      if (m === '>') return '&gt;';
+      return m;
+    }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+      return c;
+    });
+  }
+  
+  // 弹窗控制
+  function openModal(id) {
+    document.getElementById(id).classList.add('show');
+  }
+  function closeModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) modal.classList.remove('show');
+    if (id === 'courseModal') {
+      document.getElementById('courseForm').reset();
+      editingCourseId = null;
+    }
+    if (id === 'editTimeModal') currentTimeEditIndex = -1;
+  }
+  
+  // 全局事件绑定
+  function bindGlobalEvents() {
+    // 添加课程按钮
+    document.getElementById('addBtn').addEventListener('click', () => handleAddByPlus());
+
+    // 设置按钮：打开设置弹窗
+    document.getElementById('settingBtn').addEventListener('click', () => {
+        const totalWeeksInput = document.getElementById('totalWeeks');
+        if (totalWeeksInput) totalWeeksInput.value = MAX_WEEK;
+        openModal('settingsModal');
+    });
+
+    // 设置弹窗表单提交
+    const settingsForm = document.getElementById('settingsForm');
+    if (settingsForm) {
+        settingsForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newTotal = parseInt(document.getElementById('totalWeeks').value);
+            if (!isNaN(newTotal) && newTotal >= 1) {
+                MAX_WEEK = newTotal;
+                localStorage.setItem('totalWeeks', MAX_WEEK);
+                if (currentWeek > MAX_WEEK) currentWeek = 1;
+                updateTopDate();
+                renderFullTable();
+                showToast(`学期总周数已设为 ${MAX_WEEK} 周`, 1500);
+                closeModal('settingsModal');
+            } else {
+                showToast('请输入有效的周数 (1-30)', 1000);
+            }
+        });
+    }
+    document.getElementById('editFromInfoBtn').addEventListener('click', () => {
+    if (currentViewingCourse) {
+        closeModal('courseInfoModal');
+        // 调用编辑函数（复用现有的编辑填充逻辑）
+        openEditModalForCourse(currentViewingCourse);
+    }
+    });
+
+    // 设置弹窗取消按钮
+    const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+    if (closeSettingsBtn) {
+        closeSettingsBtn.addEventListener('click', () => closeModal('settingsModal'));
+    }
+
+    // 关闭其他弹窗的按钮
+    document.getElementById('closeCourseModalBtn').addEventListener('click', () => closeModal('courseModal'));
+    document.getElementById('cancelEditTimeBtn').addEventListener('click', () => closeModal('editTimeModal'));
+
+    // 表单提交
+    document.getElementById('courseForm').addEventListener('submit', saveCourseFromModal);
+    document.getElementById('timeForm').addEventListener('submit', handleTimeEdit);
+
+    // 点击模态背景关闭
+    window.addEventListener('click', (e) => {
+        if (e.target.classList && e.target.classList.contains('modal')) {
+            e.target.classList.remove('show');
+            if (e.target.id === 'courseModal') editingCourseId = null;
+            if (e.target.id === 'courseInfoModal') currentViewingCourse = null;
+        }
+    });
+
+    // 周次切换按钮
+    const prevBtn = document.getElementById('prevWeekBtn');
+    const nextBtn = document.getElementById('nextWeekBtn');
+    if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+            if (currentWeek > 1) {
+                currentWeek--;
+                updateTopDate();
+                renderFullTable();
+            }
+        });
+    }
+    if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+            if (currentWeek < MAX_WEEK) {
+                currentWeek++;
+                updateTopDate();
+                renderFullTable();
+            }
+        });
+    }
+    // 删除按钮
+    document.getElementById('deleteFromInfoBtn').addEventListener('click', () => {
+    if (currentViewingCourse && confirm(`⚠️ 确定删除课程“${currentViewingCourse.name}”吗？`)) {
+        allCourses = allCourses.filter(c => c.id !== currentViewingCourse.id);
+        localStorage.setItem('myCourses', JSON.stringify(allCourses));
+        renderFullTable();
+        showToast(`已删除 ${currentViewingCourse.name}`);
+        closeModal('courseInfoModal');
+        currentViewingCourse = null;
+    }
+    });
+
+    document.getElementById('closeInfoModalBtn').addEventListener('click', () => {
+      closeModal('courseInfoModal');
+      currentViewingCourse = null;
+    });
+  }
+
+  function openEditModalForCourse(course) {
+    window.originalCourseName = course.name;
+    editingCourseId = course.id;
+    document.getElementById('courseColor').value = course.color || '#2b6ef0';
+    document.getElementById('modalTitle').innerText = '编辑课程';
+    document.getElementById('courseName').value = course.name;
+    document.getElementById('courseTeacher').value = course.teacher || '';
+    document.getElementById('courseRoom').value = course.room;
+    document.getElementById('courseWeek').value = course.week;
+    document.getElementById('courseSection').value = course.section;
+    document.getElementById('syncColorOption').style.display = 'block';
+    document.getElementById('syncColorToAll').checked = false;
+    openModal('courseModal');
+  }
+  
+  // 初始化: 渲染课程表 + 日期 + 节次下拉预备
+  function init() {
+    const savedTotalWeeks = localStorage.getItem('totalWeeks');
+    if (savedTotalWeeks) {
+        MAX_WEEK = parseInt(savedTotalWeeks);
+    } else {
+        MAX_WEEK = 20;  // 默认值
+    }
+    // 同时确保 currentWeek 不超过 MAX_WEEK
+    if (currentWeek > MAX_WEEK) currentWeek = 1;
+    updateTopDate();
+    updateSectionSelectInModal();   // 保证添加下拉
+    renderFullTable();
+    bindGlobalEvents();
+  }
+  init();
+</script>
+</body>
+</html>
