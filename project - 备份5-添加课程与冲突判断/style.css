@@ -607,3 +607,85 @@ body {
   font-size: 13px;
   padding: 4px 16px;
 }
+/* 移动端竖屏适配 (宽度 ≤ 768px) */
+@media (max-width: 768px) {
+  body {
+    padding: 8px;
+  }
+  .app-container {
+    border-radius: 20px;
+  }
+  /* 顶部栏改为垂直排列 */
+  .top-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 12px;
+  }
+  .top-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .week-control-group {
+    justify-content: space-between;
+  }
+  .top-buttons {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .top-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+  }
+  .top-btn#settingBtn {
+    font-size: 16px;
+  }
+  .top-buttons select,
+  .top-buttons .top-btn {
+    height: 40px;
+  }
+  /* 课表容器允许横向滚动，但整体高度自适应 */
+  .table-scroll {
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: visible;
+  }
+  .course-grid {
+    min-width: 600px; /* 保证表格不压缩，横向滚动 */
+    margin: 0 12px 12px 12px;
+  }
+  /* 全局设置视图 */
+  #fullSettingsView > div {
+    padding: 12px;
+  }
+  .modal-content {
+    max-width: 95%;
+    padding: 16px;
+  }
+  .form-input, .form-select {
+    height: 40px;
+    font-size: 14px;
+  }
+  .unified-btn {
+    padding: 4px 12px;
+    font-size: 12px;
+  }
+  .course-group {
+    padding: 12px !important;
+  }
+  .schedule-row {
+    flex-wrap: wrap;
+  }
+  .schedule-row select, .schedule-row input {
+    min-width: 80px;
+  }
+  .time-config-row {
+    flex-wrap: wrap;
+  }
+  .time-config-row > div {
+    flex: 1 1 auto;
+  }
+}
