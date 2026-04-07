@@ -643,14 +643,13 @@ body {
   .table-scroll {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    max-height: none;
   }
   /* 网格：时间轴固定45px，星期列最小宽度55px，平分剩余空间 */
   .course-grid {
-    display: grid;
-    grid-template-columns: 45px repeat(7, minmax(55px, 1fr));
-    grid-auto-rows: minmax(60px, auto);
-    margin: 0 8px 12px 8px;
-    min-width: 0; /* 允许收缩 */
+    min-width: 700px !important; /* 允许收缩 */
+    width:100%;
+    grid-template-columns: 60px repeat(7, 1fr);
   }
   /* 时间轴单元格文字换行 */
   .time-header-cell {
