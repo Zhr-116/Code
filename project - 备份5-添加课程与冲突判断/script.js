@@ -361,12 +361,17 @@ function handleCourseAction(course) {
 }
 
 function openAddCourseModal(week, sectionNum) {
+  console.log('openAddCourseModal 被调用', week, sectionNum);
   editingCourseId = null;
   document.getElementById('modalTitle').innerText = '添加课程';
   document.getElementById('courseForm').reset();
   document.getElementById('syncColorOption').style.display = 'none';
   document.getElementById('syncColorToAll').checked = false;
   document.getElementById('courseWeek').value = week;
+  if (!timeConfig || timeConfig.length === 0) {
+    console.warn('timeConfig 无效，使用默认配置');
+    timeConfig = DEFAULT_TIME_CONFIG;
+  }
   updateSectionSelectInModal();
   document.getElementById('courseSection').value = sectionNum;
   openModal('courseModal');
