@@ -607,7 +607,7 @@ body {
   font-size: 13px;
   padding: 4px 16px;
 }
-/* 移动端竖屏适配 (宽度 ≤ 768px) */
+/* 移动端竖屏适配：不横向滚动，压缩列宽 */
 @media (max-width: 768px) {
   body {
     padding: 8px;
@@ -615,7 +615,6 @@ body {
   .app-container {
     border-radius: 20px;
   }
-  /* 顶部栏改为垂直排列 */
   .top-bar {
     flex-direction: column;
     align-items: stretch;
@@ -640,27 +639,55 @@ body {
     height: 40px;
     font-size: 18px;
   }
-  .top-btn#settingBtn {
-    font-size: 16px;
-  }
-  .top-buttons select,
-  .top-buttons .top-btn {
-    height: 40px;
-  }
-  /* 课表容器允许横向滚动，但整体高度自适应 */
+  /* 课表容器：不横向滚动，允许换行 */
   .table-scroll {
+    overflow-x: visible;
+    overflow-y: auto;
     max-height: none;
-    overflow-x: auto;
-    overflow-y: visible;
   }
+  /* 核心：调整网格列宽，使总宽度不超过屏幕 */
   .course-grid {
-    min-width: 600px; /* 保证表格不压缩，横向滚动 */
-    margin: 0 12px 12px 12px;
+    min-width: 0;          /* 允许收缩 */
+    grid-template-columns: 60px repeat(7, 1fr);  /* 时间轴固定60px，星期列平分剩余空间 */
+    grid-auto-rows: minmax(65px, auto);          /* 行高自动，最小65px */
+    margin: 0 8px 12px 8px;
   }
-  /* 全局设置视图 */
-  #fullSettingsView > div {
-    padding: 12px;
+  /* 时间轴单元格内容换行 */
+  .time-header-cell {
+    font-size: 10px;
+    line-height: 1.2;
+    padding: 4px;
   }
+  .time-section {
+    font-size: 11px;
+  }
+  .time-detail {
+    font-size: 9px;
+    white-space: normal;
+    word-break: break-word;
+  }
+  /* 星期标题字体缩小 */
+  .week-header {
+    font-size: 12px;
+    padding: 4px;
+  }
+  /* 课程卡片内容缩小 */
+  .course-card {
+    padding: 4px 2px;
+    font-size: 10px;
+  }
+  .course-card .c-name {
+    font-size: 11px;
+    margin-bottom: 2px;
+  }
+  .course-card .c-info {
+    font-size: 9px;
+  }
+  /* 空白单元格加号隐藏或缩小 */
+  .empty-cell {
+    font-size: 14px;
+  }
+  /* 弹窗和表单调整 */
   .modal-content {
     max-width: 95%;
     padding: 16px;
@@ -673,19 +700,20 @@ body {
     padding: 4px 12px;
     font-size: 12px;
   }
+  /* 全局设置视图内边距 */
+  #fullSettingsView > div {
+    padding: 12px;
+  }
+  /* 课程组卡片内边距 */
   .course-group {
     padding: 12px !important;
   }
   .schedule-row {
     flex-wrap: wrap;
+    gap: 6px;
   }
   .schedule-row select, .schedule-row input {
-    min-width: 80px;
-  }
-  .time-config-row {
-    flex-wrap: wrap;
-  }
-  .time-config-row > div {
-    flex: 1 1 auto;
+    font-size: 12px;
+    height: 32px;
   }
 }
