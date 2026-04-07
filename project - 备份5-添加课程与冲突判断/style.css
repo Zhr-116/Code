@@ -607,7 +607,7 @@ body {
   font-size: 13px;
   padding: 4px 16px;
 }
-/* 移动端竖屏适配：不横向滚动，压缩列宽 */
+/* 移动端竖屏适配：强制显示所有列，压缩宽度 */
 @media (max-width: 768px) {
   body {
     padding: 8px;
@@ -639,55 +639,57 @@ body {
     height: 40px;
     font-size: 18px;
   }
-  /* 课表容器：不横向滚动，允许换行 */
+  /* 课表容器：允许横向滚动，但尽量不滚动（通过压缩列宽） */
   .table-scroll {
-    overflow-x: visible;
-    overflow-y: auto;
-    max-height: none;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
-  /* 核心：调整网格列宽，使总宽度不超过屏幕 */
+  /* 网格：时间轴固定45px，星期列最小宽度55px，平分剩余空间 */
   .course-grid {
-    min-width: 0;          /* 允许收缩 */
-    grid-template-columns: 60px repeat(7, 1fr);  /* 时间轴固定60px，星期列平分剩余空间 */
-    grid-auto-rows: minmax(65px, auto);          /* 行高自动，最小65px */
+    display: grid;
+    grid-template-columns: 45px repeat(7, minmax(55px, 1fr));
+    grid-auto-rows: minmax(60px, auto);
     margin: 0 8px 12px 8px;
+    min-width: 0; /* 允许收缩 */
   }
-  /* 时间轴单元格内容换行 */
+  /* 时间轴单元格文字换行 */
   .time-header-cell {
-    font-size: 10px;
+    font-size: 9px;
     line-height: 1.2;
-    padding: 4px;
+    padding: 2px;
   }
   .time-section {
-    font-size: 11px;
+    font-size: 10px;
   }
   .time-detail {
-    font-size: 9px;
+    font-size: 8px;
     white-space: normal;
     word-break: break-word;
   }
-  /* 星期标题字体缩小 */
+  /* 星期标题 */
   .week-header {
-    font-size: 12px;
-    padding: 4px;
+    font-size: 11px;
+    padding: 4px 2px;
   }
-  /* 课程卡片内容缩小 */
+  /* 课程卡片 */
   .course-card {
     padding: 4px 2px;
-    font-size: 10px;
-  }
-  .course-card .c-name {
-    font-size: 11px;
-    margin-bottom: 2px;
-  }
-  .course-card .c-info {
     font-size: 9px;
   }
-  /* 空白单元格加号隐藏或缩小 */
+  .course-card .c-name {
+    font-size: 10px;
+    margin-bottom: 2px;
+    word-break: break-word;
+  }
+  .course-card .c-info {
+    font-size: 8px;
+    word-break: break-word;
+  }
+  /* 空白单元格加号缩小 */
   .empty-cell {
     font-size: 14px;
   }
-  /* 弹窗和表单调整 */
+  /* 弹窗 */
   .modal-content {
     max-width: 95%;
     padding: 16px;
@@ -700,11 +702,10 @@ body {
     padding: 4px 12px;
     font-size: 12px;
   }
-  /* 全局设置视图内边距 */
+  /* 全局设置视图 */
   #fullSettingsView > div {
     padding: 12px;
   }
-  /* 课程组卡片内边距 */
   .course-group {
     padding: 12px !important;
   }
