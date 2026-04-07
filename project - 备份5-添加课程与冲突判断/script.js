@@ -82,6 +82,19 @@ function closeModal(id) {
 }
 
 
+function toggleTheme() {
+  if (document.documentElement.classList.contains('dark-theme')) {
+    document.documentElement.classList.remove('dark-theme');
+    localStorage.setItem('theme', 'light');
+    document.getElementById('themeToggleBtn').textContent = '🌙';
+  } else {
+    document.documentElement.classList.add('dark-theme');
+    localStorage.setItem('theme', 'dark');
+    document.getElementById('themeToggleBtn').textContent = '☀️';
+  }
+}
+
+
 // ---------- 核心渲染 ----------
 function updateTopDate() {
   const now = new Date();
@@ -112,6 +125,10 @@ function isCourseVisibleInWeek(course, week) {
 }
 
 function quickAddCourse() {
+  if (!timeConfig || timeConfig.length === 0) {
+    console.warn('timeConfig 无效，使用默认配置');
+    timeConfig = DEFAULT_TIME_CONFIG;
+  }
   // 创建临时模态框
   const modalDiv = document.createElement('div');
   modalDiv.className = 'modal';
