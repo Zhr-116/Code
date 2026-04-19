@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>流光画境 · 幻彩工坊</title>
+    <title>素描绘馆 · 质感画板</title>
     <style>
         * {
             margin: 0;
@@ -14,363 +14,736 @@
         }
 
         body {
-            background: #1a262f;
+            background: #1a1e24;
             overflow: hidden;
-            font-family: 'Segoe UI', 'Poppins', system-ui, -apple-system;
+            font-family: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
             touch-action: none;
         }
 
-        canvas {
+        .canvas-wrapper {
             position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            display: block;
-            cursor: crosshair;
+            right: 0;
+            bottom: 82px;
+            background: #eef2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: auto;
         }
 
-        /* 半透明控制台 — 精致且不影响沉浸 */
-        .control-panel {
+        canvas {
+            display: block;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+            cursor: crosshair;
+            background: white;
+            border-radius: 20px;
+            width: auto;
+            height: auto;
+            max-width: 95%;
+            max-height: 95%;
+            object-fit: contain;
+        }
+
+        .toolbar {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(30, 45, 55, 0.7);
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(28, 32, 40, 0.94);
             backdrop-filter: blur(20px);
-            border-radius: 60px;
-            padding: 10px 18px;
+            border-top: 1px solid rgba(255, 240, 180, 0.25);
+            padding: 8px 12px;
             display: flex;
-            flex-wrap: wrap;
-            gap: 14px;
-            z-index: 100;
-            border: 1px solid rgba(255, 240, 180, 0.35);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-            align-items: center;
-            justify-content: flex-end;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            gap: 10px;
+            z-index: 200;
+            box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.15);
+            scrollbar-width: thin;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .toolbar::-webkit-scrollbar {
+            height: 3px;
         }
 
         .tool-group {
+            background: rgba(20, 25, 32, 0.65);
+            border-radius: 44px;
+            padding: 5px 12px;
             display: flex;
-            gap: 10px;
+            gap: 8px;
             align-items: center;
-            background: rgba(0, 0, 0, 0.2);
-            padding: 4px 12px;
-            border-radius: 50px;
+            flex-shrink: 0;
         }
 
-        .color-dot {
-            width: 34px;
-            height: 34px;
-            border-radius: 50%;
-            cursor: pointer;
-            border: 2px solid rgba(255, 250, 200, 0.7);
-            transition: 0.08s linear;
-        }
-
-        .color-dot.active {
-            transform: scale(1.15);
-            border-color: #fff0b5;
-            box-shadow: 0 0 10px rgba(255, 200, 100, 0.6);
-        }
-
-        .custom-color {
-            width: 34px;
-            height: 34px;
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-            background: transparent;
-        }
-
-        .brush-btn {
-            background: #3f6e7e;
-            border: none;
-            padding: 6px 16px;
-            border-radius: 40px;
-            color: white;
-            font-size: 0.75rem;
+        .brush-icon, .color-dot, .action-btn, .bg-btn, .eraser-btn, .history-color {
+            width: 40px;
+            height: 40px;
+            border-radius: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
             font-weight: 500;
             cursor: pointer;
-            transition: 0.05s;
-            font-family: inherit;
+            transition: 0.07s linear;
+            background: rgba(230, 240, 250, 0.2);
+            border: 1px solid rgba(255, 240, 180, 0.4);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+            flex-shrink: 0;
+            color: #f5f0e0;
         }
 
-        .brush-btn.active {
-            background: #ffb347;
-            color: #1f2f38;
-            box-shadow: 0 0 8px #ffb347;
+        .brush-icon.active, .eraser-btn.active {
+            background: #ffd89a;
+            border-color: #ffb65b;
+            color: #2a2a2a;
+            transform: scale(1.02);
         }
 
-        button {
-            background: #2d5b68;
-            border: none;
-            padding: 6px 14px;
-            border-radius: 40px;
-            color: #f0f6fa;
+        .color-dot, .history-color {
+            padding: 0;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,200,0.8);
+        }
+        .color-dot.active {
+            transform: scale(1.1);
+            border-color: #fff0c0;
+            box-shadow: 0 0 10px #ffc285;
+        }
+        .history-color {
+            width: 34px;
+            height: 34px;
+        }
+
+        .custom-color-wrap {
+            width: 40px;
+            height: 40px;
+        }
+        .custom-color {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,200,0.8);
             cursor: pointer;
-            font-family: inherit;
-            font-size: 0.7rem;
-            transition: 0.05s;
         }
 
-        button:active {
-            transform: scale(0.94);
+        .size-control {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(0,0,0,0.3);
+            padding: 4px 12px;
+            border-radius: 36px;
+        }
+        .size-control span {
+            font-size: 11px;
+            color: #ffefcf;
+            font-weight: 500;
+        }
+        input[type="range"] {
+            width: 100px;
+            height: 3px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: #cbdae9;
+            border-radius: 5px;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #ffbc6e;
+            border: 1px solid white;
+            cursor: pointer;
+        }
+
+        .action-btn {
+            background: #5f7f6e;
         }
 
         .info-tip {
             position: fixed;
-            bottom: 22px;
-            left: 20px;
-            background: rgba(0, 0, 0, 0.45);
+            bottom: 92px;
+            left: 12px;
+            background: rgba(0,0,0,0.5);
             backdrop-filter: blur(8px);
-            padding: 5px 16px;
-            border-radius: 50px;
-            font-size: 0.65rem;
+            padding: 4px 12px;
+            border-radius: 32px;
+            font-size: 10px;
             color: #eef3fc;
             pointer-events: none;
             z-index: 99;
-            letter-spacing: 0.3px;
+            white-space: nowrap;
+            font-weight: 400;
         }
 
-        @media (max-width: 650px) {
-            .control-panel { padding: 6px 12px; gap: 8px; bottom: 14px; right: 14px; }
-            .color-dot { width: 30px; height: 30px; }
-            .brush-btn { padding: 4px 10px; font-size: 0.65rem; }
-            button { padding: 4px 10px; font-size: 0.65rem; }
+        @media (max-width: 700px) {
+            .canvas-wrapper { bottom: 76px; }
+            .toolbar { padding: 6px 10px; gap: 8px; }
+            .brush-icon, .color-dot, .action-btn, .bg-btn, .eraser-btn { width: 38px; height: 38px; font-size: 13px; }
+            .history-color { width: 32px; height: 32px; }
+            .size-control span { font-size: 10px; }
+            input[type="range"] { width: 85px; }
+            .info-tip { bottom: 86px; font-size: 9px; }
         }
     </style>
 </head>
 <body>
-<canvas id="magicCanvas"></canvas>
-<div class="control-panel">
+<div class="canvas-wrapper">
+    <canvas id="sketchCanvas"></canvas>
+</div>
+<div class="toolbar">
     <div class="tool-group">
-        <div class="color-dot" style="background: #ffb347;" data-color="#ffb347"></div>
-        <div class="color-dot" style="background: #6cd4ff;" data-color="#6cd4ff"></div>
-        <div class="color-dot" style="background: #d98cff;" data-color="#d98cff"></div>
-        <div class="color-dot" style="background: #8affc4;" data-color="#8affc4"></div>
-        <div class="color-dot" style="background: #ff9f6e;" data-color="#ff9f6e"></div>
-        <div class="color-dot" style="background: #f7da7c;" data-color="#f7da7c"></div>
-        <input type="color" id="customColorPicker" class="custom-color" value="#ffb347">
+        <div class="brush-icon active" data-brush="watercolor">水彩</div>
+        <div class="brush-icon" data-brush="chineseBrush">毛笔</div>
+        <div class="brush-icon" data-brush="crayon">蜡笔</div>
+        <div class="brush-icon" data-brush="rainbow">彩虹</div>
+        <div class="brush-icon" data-brush="spray">喷枪</div>
+        <div class="brush-icon" data-brush="marker">马克笔</div>
     </div>
     <div class="tool-group">
-        <button class="brush-btn active" data-brush="flower">🌸 繁花</button>
-        <button class="brush-btn" data-brush="stardust">✨ 星尘</button>
-        <button class="brush-btn" data-brush="ribbon">🎀 流光</button>
+        <div class="color-dot" style="background: #2c2c2e;" data-color="#2c2c2e"></div>
+        <div class="color-dot" style="background: #d9733d;" data-color="#d9733d"></div>
+        <div class="color-dot" style="background: #4d7c8c;" data-color="#4d7c8c"></div>
+        <div class="color-dot" style="background: #a8786a;" data-color="#a8786a"></div>
+        <div class="color-dot" style="background: #6a9e7b;" data-color="#6a9e7b"></div>
+        <div class="color-dot active" style="background: #f3b33d;" data-color="#f3b33d"></div>
+        <div class="custom-color-wrap">
+            <input type="color" id="customColorPicker" class="custom-color" value="#f3b33d">
+        </div>
+    </div>
+    <!-- 颜色历史区域 -->
+    <div class="tool-group" id="colorHistoryGroup">
+        <span style="font-size:10px; color:#ddd; margin-right:4px;">最近</span>
+        <!-- 动态生成5个历史色块 -->
     </div>
     <div class="tool-group">
-        <button id="changeBgBtn">🌈 换背景</button>
-        <button id="clearBtn">🍃 新生</button>
+        <div class="eraser-btn" id="eraserBtn">橡皮</div>
+    </div>
+    <div class="tool-group">
+        <div class="size-control">
+            <span>大小</span>
+            <input type="range" id="brushSizeSlider" min="3" max="52" value="18" step="1">
+            <span id="sizeValue" style="min-width: 26px;">18</span>
+        </div>
+    </div>
+    <div class="tool-group">
+        <div class="bg-btn" id="bgColorBtn" style="background: #fdf4e0;">背景</div>
+        <input type="color" id="bgColorPicker" value="#ffffff" style="width: 40px; height: 40px; border-radius: 36px; border: 2px solid rgba(255,255,200,0.8); background: white;">
+    </div>
+    <div class="tool-group">
+        <div class="action-btn" id="undoBtn">↩️</div>
+        <div class="action-btn" id="redoBtn">↪️</div>
+        <div class="action-btn" id="clearCanvasBtn">清空</div>
+        <div class="action-btn" id="saveCanvasBtn">保存</div>
     </div>
 </div>
 <div class="info-tip">
-    💫 点按开花 · 拖曳留痕 · 笔刷自由切换 · 背景八色轮转
+  毛笔有笔锋 · 水彩晕染 · 撤销/重做 · 颜色历史
 </div>
 
 <script>
     (function(){
-        const canvas = document.getElementById('magicCanvas');
+        const canvas = document.getElementById('sketchCanvas');
         const ctx = canvas.getContext('2d');
-        let width, height;
-        let elements = [];
-        let currentColor = '#ffb347';
-        let currentBrush = 'flower';   // flower, stardust, ribbon
+        
+        let canvasWidth = 0, canvasHeight = 0;
         let drawing = false;
-        let bgIndex = 0;
-        // 8种纯色高级背景（饱和度舒适，有特色但不刺眼）
-        const bgPalette = [
-            '#f7f0e6',  // 米白暖意
-            '#d9e8f0',  // 雾蓝
-            '#e2dfe8',  // 淡紫灰
-            '#cfe8db',  // 薄荷奶绿
-            '#ffe6d5',  // 杏仁色
-            '#d6e4f0',  // 晴空
-            '#f5e3e0',  // 樱花粉白
-            '#e0e7f5'   // 清透蓝
-        ];
-
-        function resizeCanvas() {
-            width = window.innerWidth;
-            height = window.innerHeight;
-            canvas.width = width;
-            canvas.height = height;
-            redrawAll();
+        let lastX = 0, lastY = 0;
+        let lastTime = 0;
+        let currentBrush = 'watercolor';
+        let currentColor = '#f3b33d';
+        let brushSize = 18;
+        let eraserMode = false;
+        let rainbowHue = 0;
+        let currentBgColor = '#ffffff';
+        
+        // ---------- 历史记录 (简化可靠版) ----------
+        let undoStack = [];    // 存储 Image 快照
+        let redoStack = [];
+        const MAX_HISTORY = 50;
+        let saveTimer = null;
+        
+        // 获取当前画布快照
+        function captureSnapshot() {
+            if (canvasWidth === 0) return null;
+            const off = document.createElement('canvas');
+            off.width = canvasWidth;
+            off.height = canvasHeight;
+            const offCtx = off.getContext('2d');
+            offCtx.drawImage(canvas, 0, 0);
+            return off;
         }
-
-        // 绘制花朵 (轻盈且有空气感)
-        function drawFlower(x, y, color, size) {
-            ctx.save();
-            ctx.shadowBlur = 12;
-            ctx.shadowColor = color + 'aa';
-            const petalCount = 6 + Math.floor(Math.random() * 4);
-            for(let i=0;i<petalCount;i++) {
-                const angle = i * Math.PI * 2 / petalCount;
-                const px = x + Math.cos(angle) * size * 0.9;
-                const py = y + Math.sin(angle) * size * 0.75;
-                ctx.beginPath();
-                ctx.ellipse(px, py, size*0.65, size*0.5, angle, 0, Math.PI*2);
-                ctx.fillStyle = color + 'dd';
-                ctx.fill();
+        
+        // 从快照恢复
+        function restoreFromSnapshot(snapshot) {
+            if (!snapshot) return;
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+            ctx.drawImage(snapshot, 0, 0);
+        }
+        
+        // 保存当前状态到撤销栈（无条件保存，每次绘画结束调用）
+        function saveToUndo() {
+            // 清除之前的延迟保存
+            if (saveTimer) clearTimeout(saveTimer);
+            saveTimer = setTimeout(() => {
+                const snapshot = captureSnapshot();
+                if (!snapshot) return;
+                undoStack.push(snapshot);
+                if (undoStack.length > MAX_HISTORY) undoStack.shift();
+                // 新状态加入后清空重做栈
+                redoStack = [];
+                saveTimer = null;
+            }, 30);
+        }
+        
+        // 立即保存（用于清空、换背景等操作）
+        function saveToUndoImmediate() {
+            if (saveTimer) {
+                clearTimeout(saveTimer);
+                saveTimer = null;
             }
-            ctx.beginPath();
-            ctx.arc(x, y, size*0.4, 0, Math.PI*2);
-            ctx.fillStyle = '#fff5cf';
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(x-2, y-2, size*0.12, 0, Math.PI*2);
-            ctx.fillStyle = '#ffbc6e';
-            ctx.fill();
-            ctx.restore();
+            const snapshot = captureSnapshot();
+            if (!snapshot) return;
+            undoStack.push(snapshot);
+            if (undoStack.length > MAX_HISTORY) undoStack.shift();
+            redoStack = [];
         }
-
-        // 星尘粒子 + 光晕
-        function drawStardust(x, y, color, rad) {
+        
+        function undo() {
+            if (undoStack.length <= 1) return;  // 至少保留一个初始状态
+            // 当前状态推入重做栈
+            const current = captureSnapshot();
+            if (current) redoStack.push(current);
+            // 弹出上一个状态并恢复
+            const prev = undoStack.pop();
+            restoreFromSnapshot(prev);
+        }
+        
+        function redo() {
+            if (redoStack.length === 0) return;
+            const next = redoStack.pop();
+            const current = captureSnapshot();
+            if (current) undoStack.push(current);
+            restoreFromSnapshot(next);
+        }
+        
+        // 初始化空白状态
+        function initHistory() {
+            saveToUndoImmediate(); // 空白状态入栈
+        }
+        
+        // 绘画结束时调用
+        function onDrawEnd() {
+            if (drawing) {
+                drawing = false;
+                saveToUndo();  // 一笔画结束保存状态
+            }
+        }
+        
+        // 清空画布（保留背景色）
+        function clearCanvas() {
+            ctx.fillStyle = currentBgColor;
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+            saveToUndoImmediate();
+        }
+        
+        // 更换背景色（保留绘画内容）
+        function setBackgroundColor(newColor) {
+            if (newColor === currentBgColor) return;
+            const snap = captureSnapshot();
+            currentBgColor = newColor;
+            ctx.fillStyle = currentBgColor;
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+            if (snap) ctx.drawImage(snap, 0, 0);
+            saveToUndoImmediate();
+        }
+        
+        // ---------- 颜色历史 ----------
+        let colorHistory = ['#f3b33d'];
+        function addColorToHistory(color) {
+            if (!color) return;
+            const idx = colorHistory.indexOf(color);
+            if (idx !== -1) colorHistory.splice(idx, 1);
+            colorHistory.unshift(color);
+            if (colorHistory.length > 5) colorHistory.pop();
+            renderColorHistory();
+        }
+        
+        function renderColorHistory() {
+            const container = document.getElementById('colorHistoryGroup');
+            if (!container) return;
+            const span = container.querySelector('span');
+            container.innerHTML = '';
+            container.appendChild(span);
+            colorHistory.forEach(color => {
+                const div = document.createElement('div');
+                div.className = 'history-color';
+                div.style.background = color;
+                div.setAttribute('data-color', color);
+                div.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (eraserMode) return;
+                    currentColor = color;
+                    document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+                    document.getElementById('customColorPicker').value = color;
+                    addColorToHistory(color);
+                });
+                container.appendChild(div);
+            });
+        }
+        
+        // ---------- 笔刷核心（保持原有质感）----------
+        function getRainbowColor() {
+            const hue = rainbowHue % 360;
+            rainbowHue = (rainbowHue + 6) % 360;
+            return `hsl(${hue}, 80%, 65%)`;
+        }
+        
+        function drawWatercolor(x, y, size, color) {
             ctx.save();
-            ctx.shadowBlur = 8;
-            ctx.shadowColor = color;
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.globalAlpha = 0.35;
             ctx.beginPath();
-            ctx.arc(x, y, rad, 0, Math.PI*2);
+            ctx.ellipse(x, y, size * 0.85, size * 0.7, 0, 0, Math.PI*2);
             ctx.fillStyle = color;
             ctx.fill();
+            ctx.globalAlpha = 0.25;
             for(let i=0;i<3;i++) {
-                const angle = i * Math.PI * 2 / 3;
-                const dx = Math.cos(angle) * rad * 1.6;
-                const dy = Math.sin(angle) * rad * 1.6;
+                let offX = (Math.random() - 0.5) * size * 0.65;
+                let offY = (Math.random() - 0.5) * size * 0.65;
                 ctx.beginPath();
-                ctx.moveTo(x+dx*0.4, y+dy*0.4);
-                ctx.lineTo(x+dx, y+dy);
-                ctx.lineWidth = 1.5;
-                ctx.strokeStyle = color;
-                ctx.stroke();
-            }
-            ctx.restore();
-        }
-
-        // 流光笔触 (柔光带状)
-        function drawRibbon(x, y, color, size) {
-            ctx.save();
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = color + 'aa';
-            ctx.beginPath();
-            for(let i=0;i<5;i++) {
-                const angle = Math.random() * Math.PI * 2;
-                const offX = Math.cos(angle) * size * 1.2;
-                const offY = Math.sin(angle) * size * 0.8;
-                ctx.moveTo(x, y);
-                ctx.lineTo(x + offX, y + offY);
-                ctx.lineWidth = 3 + Math.random() * 4;
-                ctx.strokeStyle = color + 'cc';
-                ctx.stroke();
-            }
-            ctx.restore();
-        }
-
-        function addElement(x, y, type) {
-            if(x<0 || y<0 || x>width || y>height) return;
-            let size, newType = type;
-            if(type === 'flower') size = 9 + Math.random() * 11;
-            else if(type === 'stardust') size = 3 + Math.random() * 5;
-            else size = 5 + Math.random() * 7;
-            elements.push({ x, y, color: currentColor, size, type: newType });
-            redrawAll();
-            if(elements.length > 1100) elements = elements.slice(-900);
-        }
-
-        function redrawAll() {
-            // 纯色背景 (用户可换)
-            ctx.fillStyle = bgPalette[bgIndex];
-            ctx.fillRect(0, 0, width, height);
-            // 极细的几何装饰 (特色但不乱)
-            ctx.globalAlpha = 0.12;
-            for(let i=0;i<70;i++) {
-                ctx.beginPath();
-                ctx.arc((i*131)%width, (i*97)%height, 12, 0, Math.PI*2);
-                ctx.fillStyle = '#aaccdd';
+                ctx.ellipse(x + offX, y + offY, size * 0.6, size * 0.55, 0, 0, Math.PI*2);
                 ctx.fill();
             }
+            ctx.globalAlpha = 0.55;
+            ctx.beginPath();
+            ctx.ellipse(x, y, size * 0.45, size * 0.4, 0, 0, Math.PI*2);
+            ctx.fill();
+            ctx.restore();
+        }
+        
+        function drawChineseBrush(x, y, size, color, speed, angle) {
+            ctx.save();
+            ctx.globalAlpha = 0.88;
+            let dynamicSize = size * Math.max(0.4, Math.min(1.0, 1.0 - speed * 0.7));
+            dynamicSize = Math.max(4, dynamicSize);
+            const major = dynamicSize * 0.95;
+            const minor = dynamicSize * 0.55;
+            ctx.beginPath();
+            ctx.ellipse(x, y, major, minor, angle, 0, Math.PI*2);
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.globalAlpha = 0.45;
+            for(let i=0;i<4;i++) {
+                ctx.beginPath();
+                ctx.arc(x + (Math.random()-0.5)*dynamicSize*0.8, y + (Math.random()-0.5)*dynamicSize*0.7, dynamicSize*0.12, 0, Math.PI*2);
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+        
+        function drawCrayon(x, y, size, color) {
+            ctx.save();
+            ctx.globalAlpha = 0.92;
+            const grain = Math.floor(size * 1.2);
+            for(let i=0;i<grain;i++) {
+                let offX = (Math.random() - 0.5) * size;
+                let offY = (Math.random() - 0.5) * size;
+                ctx.beginPath();
+                ctx.arc(x + offX, y + offY, Math.max(1.2, size * 0.12), 0, Math.PI*2);
+                ctx.fillStyle = color + 'cc';
+                ctx.fill();
+            }
+            ctx.beginPath();
+            ctx.arc(x, y, size * 0.48, 0, Math.PI*2);
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.restore();
+        }
+        
+        function drawRainbow(x, y, size) {
+            ctx.save();
+            const points = 7 + Math.floor(size / 7);
+            for(let i=0;i<points;i++) {
+                let a = Math.random() * Math.PI * 2;
+                let r = Math.random() * size * 0.85;
+                let px = x + Math.cos(a) * r;
+                let py = y + Math.sin(a) * r;
+                ctx.beginPath();
+                ctx.arc(px, py, size * 0.24, 0, Math.PI*2);
+                ctx.fillStyle = getRainbowColor();
+                ctx.fill();
+            }
+            ctx.beginPath();
+            ctx.arc(x, y, size * 0.4, 0, Math.PI*2);
+            ctx.fillStyle = `hsl(${rainbowHue}, 85%, 70%)`;
+            ctx.fill();
+            ctx.restore();
+        }
+        
+        function drawSpray(x, y, size, color) {
+            ctx.save();
+            const count = Math.floor(size * 2.2);
+            for(let i=0;i<count;i++) {
+                let a = Math.random() * Math.PI * 2;
+                let r = Math.random() * size * 0.95;
+                let px = x + Math.cos(a) * r;
+                let py = y + Math.sin(a) * r;
+                ctx.beginPath();
+                ctx.arc(px, py, Math.max(1, size * 0.1), 0, Math.PI*2);
+                ctx.fillStyle = color + 'aa';
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+        
+        function drawMarker(x, y, size, color) {
+            ctx.save();
+            ctx.globalAlpha = 0.7;
+            ctx.beginPath();
+            ctx.ellipse(x, y, size * 0.85, size * 0.65, 0.2, 0, Math.PI*2);
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.globalAlpha = 0.85;
+            ctx.beginPath();
+            ctx.ellipse(x-2, y-1, size*0.4, size*0.3, 0, 0, Math.PI*2);
+            ctx.fill();
+            ctx.restore();
+        }
+        
+        function drawEraser(x, y, size) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'source-over';
             ctx.globalAlpha = 1;
-            for(let e of elements) {
-                if(e.type === 'flower') drawFlower(e.x, e.y, e.color, e.size);
-                else if(e.type === 'stardust') drawStardust(e.x, e.y, e.color, e.size);
-                else drawRibbon(e.x, e.y, e.color, e.size);
+            ctx.beginPath();
+            ctx.arc(x, y, size * 0.75, 0, Math.PI*2);
+            ctx.fillStyle = currentBgColor;
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(x-1, y-1, size * 0.55, 0, Math.PI*2);
+            ctx.fill();
+            ctx.restore();
+        }
+        
+        function drawBrushDot(x, y, size, color, brush, isEraser, speed=0.3, angle=0) {
+            if (isEraser) { drawEraser(x, y, size); return; }
+            switch(brush) {
+                case 'watercolor': drawWatercolor(x, y, size, color); break;
+                case 'chineseBrush': drawChineseBrush(x, y, size, color, speed, angle); break;
+                case 'crayon': drawCrayon(x, y, size, color); break;
+                case 'rainbow': drawRainbow(x, y, size); break;
+                case 'spray': drawSpray(x, y, size, color); break;
+                case 'marker': drawMarker(x, y, size, color); break;
+                default: drawWatercolor(x, y, size, color);
             }
         }
-
+        
+        function getSpeedAngle(x0,y0,x1,y1, dt) {
+            const dx = x1-x0, dy = y1-y0;
+            const dist = Math.hypot(dx,dy);
+            const speed = dt>0 ? dist/dt : 0.2;
+            const angle = Math.atan2(dy,dx);
+            return { speed: Math.min(1.2, speed/9), angle };
+        }
+        
+        function drawLineSeg(x0,y0,x1,y1, size, color, brush, isEraser, dt) {
+            const dist = Math.hypot(x1-x0, y1-y0);
+            if (dist < 0.8) {
+                let sp=0.3, ang=0;
+                if(brush==='chineseBrush' && !isEraser) { sp=0.3; }
+                drawBrushDot(x0,y0,size,color,brush,isEraser,sp,ang);
+                return;
+            }
+            const steps = Math.max(2, Math.floor(dist/2.2));
+            for(let s=0;s<=steps;s++) {
+                const t = s/steps;
+                const cx = x0 + (x1-x0)*t;
+                const cy = y0 + (y1-y0)*t;
+                let sp=0.3, ang=0;
+                if(brush==='chineseBrush' && !isEraser) {
+                    ang = Math.atan2(y1-y0, x1-x0);
+                    const spd = dt>0 ? dist/dt : 0.3;
+                    sp = Math.min(1.0, spd/12);
+                }
+                drawBrushDot(cx,cy,size,color,brush,isEraser,sp,ang);
+            }
+        }
+        
+        function onDrawing(x, y, now) {
+            if(!drawing) return;
+            let dt = Math.max(1, now - lastTime);
+            let finalColor = currentColor;
+            if(currentBrush === 'rainbow' && !eraserMode) finalColor = getRainbowColor();
+            drawLineSeg(lastX, lastY, x, y, brushSize, finalColor, currentBrush, eraserMode, dt);
+            lastX = x; lastY = y; lastTime = now;
+        }
+        
+        // 坐标转换（移动端适配）
         function getCoords(e) {
+            const rect = canvas.getBoundingClientRect();
+            const sx = canvas.width / rect.width;
+            const sy = canvas.height / rect.height;
             let cx, cy;
-            if(e.touches) {
-                cx = e.touches[0].clientX;
-                cy = e.touches[0].clientY;
-            } else {
-                cx = e.clientX;
-                cy = e.clientY;
-            }
-            return { x: cx, y: cy };
+            if(e.touches) { cx = e.touches[0].clientX; cy = e.touches[0].clientY; }
+            else { cx = e.clientX; cy = e.clientY; }
+            let x = (cx - rect.left) * sx;
+            let y = (cy - rect.top) * sy;
+            x = Math.min(Math.max(x,0), canvas.width);
+            y = Math.min(Math.max(y,0), canvas.height);
+            return { x, y };
         }
-
-        function onStart(e) {
+        
+        function start(e) {
             e.preventDefault();
             drawing = true;
-            const {x, y} = getCoords(e);
-            addElement(x, y, currentBrush);
+            const {x,y} = getCoords(e);
+            lastX = x; lastY = y;
+            lastTime = performance.now();
+            let col = currentColor;
+            if(currentBrush==='rainbow' && !eraserMode) col = getRainbowColor();
+            drawBrushDot(x,y,brushSize,col,currentBrush,eraserMode,0.3,0);
         }
-        function onMove(e) {
+        
+        function move(e) {
             if(!drawing) return;
             e.preventDefault();
-            const {x, y} = getCoords(e);
-            addElement(x, y, currentBrush);
+            const {x,y} = getCoords(e);
+            onDrawing(x, y, performance.now());
         }
-        function onEnd() { drawing = false; }
-
-        canvas.addEventListener('mousedown', onStart);
-        window.addEventListener('mousemove', onMove);
-        window.addEventListener('mouseup', onEnd);
-        canvas.addEventListener('touchstart', onStart);
-        canvas.addEventListener('touchmove', onMove);
-        canvas.addEventListener('touchend', onEnd);
-
-        // 颜色控制
-        const colorDots = document.querySelectorAll('.color-dot');
-        const customPicker = document.getElementById('customColorPicker');
-        colorDots.forEach(dot => {
-            dot.addEventListener('click', () => {
-                colorDots.forEach(d => d.classList.remove('active'));
-                dot.classList.add('active');
-                currentColor = dot.getAttribute('data-color');
-                customPicker.value = currentColor;
+        
+        function end(e) {
+            if(drawing) {
+                drawing = false;
+                saveToUndo();  // 一笔画结束保存
+            }
+        }
+        
+        // 画布尺寸自适应（保持内容）
+        function resizeCanvas() {
+            const wrap = document.querySelector('.canvas-wrapper');
+            const maxW = wrap.clientWidth - 24;
+            const maxH = wrap.clientHeight - 24;
+            const ratio = 4/3;
+            let w = maxW;
+            let h = w/ratio;
+            if(h > maxH) { h = maxH; w = h*ratio; }
+            w = Math.floor(w); h = Math.floor(h);
+            if(w===canvasWidth && h===canvasHeight) return;
+            const snap = captureSnapshot();
+            canvasWidth = w; canvasHeight = h;
+            canvas.width = w; canvas.height = h;
+            canvas.style.width = `${w}px`;
+            canvas.style.height = `${h}px`;
+            if(snap) {
+                ctx.fillStyle = currentBgColor;
+                ctx.fillRect(0,0,w,h);
+                ctx.drawImage(snap,0,0,w,h);
+            } else {
+                ctx.fillStyle = currentBgColor;
+                ctx.fillRect(0,0,w,h);
+            }
+            // 尺寸改变保存状态
+            saveToUndoImmediate();
+        }
+        
+        // UI 绑定
+        function setupUI() {
+            const brushes = document.querySelectorAll('.brush-icon');
+            brushes.forEach(b => {
+                b.addEventListener('click', () => {
+                    if(eraserMode) { eraserMode=false; document.getElementById('eraserBtn').classList.remove('active'); }
+                    brushes.forEach(i=>i.classList.remove('active'));
+                    b.classList.add('active');
+                    currentBrush = b.getAttribute('data-brush');
+                });
             });
-        });
-        customPicker.addEventListener('input', (e) => {
-            currentColor = e.target.value;
-            colorDots.forEach(d => d.classList.remove('active'));
-        });
-        if(colorDots.length) colorDots[0].classList.add('active');
-
-        // 笔刷切换
-        const brushBtns = document.querySelectorAll('.brush-btn');
-        brushBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                brushBtns.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                currentBrush = btn.getAttribute('data-brush');
+            const eraser = document.getElementById('eraserBtn');
+            eraser.addEventListener('click', () => {
+                eraserMode = !eraserMode;
+                if(eraserMode) {
+                    eraser.classList.add('active');
+                    brushes.forEach(i=>i.classList.remove('active'));
+                } else {
+                    eraser.classList.remove('active');
+                    document.querySelector(`.brush-icon[data-brush="${currentBrush}"]`).classList.add('active');
+                }
             });
-        });
-
-        // 换背景
-        document.getElementById('changeBgBtn').addEventListener('click', () => {
-            bgIndex = (bgIndex + 1) % bgPalette.length;
-            redrawAll();
-        });
-        // 清空所有元素
-        document.getElementById('clearBtn').addEventListener('click', () => {
-            elements = [];
-            redrawAll();
-        });
-
-        window.addEventListener('resize', () => {
+            const colorDots = document.querySelectorAll('.color-dot');
+            const customPick = document.getElementById('customColorPicker');
+            colorDots.forEach(d => {
+                d.addEventListener('click', () => {
+                    if(eraserMode) return;
+                    colorDots.forEach(c=>c.classList.remove('active'));
+                    d.classList.add('active');
+                    currentColor = d.getAttribute('data-color');
+                    customPick.value = currentColor;
+                    addColorToHistory(currentColor);
+                });
+            });
+            customPick.addEventListener('input', (e) => {
+                if(eraserMode) return;
+                currentColor = e.target.value;
+                colorDots.forEach(c=>c.classList.remove('active'));
+                addColorToHistory(currentColor);
+            });
+            const sizeSlider = document.getElementById('brushSizeSlider');
+            const sizeVal = document.getElementById('sizeValue');
+            sizeSlider.addEventListener('input', (e) => {
+                brushSize = parseInt(e.target.value);
+                sizeVal.innerText = brushSize;
+            });
+            const bgPicker = document.getElementById('bgColorPicker');
+            bgPicker.addEventListener('input', (e) => setBackgroundColor(e.target.value));
+            document.getElementById('bgColorBtn').addEventListener('click', () => bgPicker.click());
+            document.getElementById('clearCanvasBtn').addEventListener('click', () => clearCanvas());
+            document.getElementById('saveCanvasBtn').addEventListener('click', () => {
+                try {
+                    let a = document.createElement('a');
+                    a.download = `sketch_${Date.now()}.png`;
+                    a.href = canvas.toDataURL();
+                    a.click();
+                } catch(e) {}
+            });
+            document.getElementById('undoBtn').addEventListener('click', () => undo());
+            document.getElementById('redoBtn').addEventListener('click', () => redo());
+            window.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.key === 'z') {
+                    e.preventDefault();
+                    undo();
+                } else if (e.ctrlKey && e.key === 'y') {
+                    e.preventDefault();
+                    redo();
+                }
+            });
+        }
+        
+        function init() {
             resizeCanvas();
-        });
-        resizeCanvas();
-        // 初始没有杂乱元素，完全由用户创作
+            setupUI();
+            initHistory();      // 初始空白状态入栈
+            renderColorHistory();
+            addColorToHistory(currentColor);
+            
+            canvas.addEventListener('mousedown', start);
+            window.addEventListener('mousemove', move);
+            window.addEventListener('mouseup', end);
+            canvas.addEventListener('touchstart', start, {passive:false});
+            canvas.addEventListener('touchmove', move, {passive:false});
+            canvas.addEventListener('touchend', end);
+            canvas.addEventListener('touchcancel', end);
+            canvas.addEventListener('dragstart', e=>e.preventDefault());
+            let tid;
+            window.addEventListener('resize', () => { clearTimeout(tid); tid = setTimeout(resizeCanvas, 150); });
+        }
+        init();
     })();
 </script>
 </body>
