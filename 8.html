@@ -20,15 +20,34 @@
             touch-action: none;
         }
 
-        canvas {
+        /* 画布容器，相对定位用于叠加网格层 */
+        .canvas-container {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             display: block;
+        }
+
+        #sketchCanvas {
             background: white;
             cursor: crosshair;
+            z-index: 1;
+        }
+
+        #gridCanvas {
+            pointer-events: none;  /* 让网格层不干扰绘画 */
+            z-index: 2;
+            background: transparent;
         }
 
         /* 侧边工具栏容器（可收起） */
@@ -262,7 +281,10 @@
     </style>
 </head>
 <body>
-<canvas id="sketchCanvas"></canvas>
+<div class="canvas-container">
+    <canvas id="sketchCanvas"></canvas>
+    <canvas id="gridCanvas"></canvas>
+</div>
 
 <!-- 贴纸面板 -->
 <div class="sticker-panel hidden" id="stickerPanel">
@@ -309,6 +331,12 @@
             <div class="icons-row">
                 <div class="symmetry-btn" id="symmetryHBtn">水平</div>
                 <div class="symmetry-btn" id="symmetryVBtn">垂直</div>
+            </div>
+        </div>
+        <div class="tool-group">
+            <div class="group-title">辅助</div>
+            <div class="icons-row">
+                <div class="tool-btn" id="gridToggleBtn">网格</div>
             </div>
         </div>
         <div class="tool-group">
@@ -363,8 +391,11 @@
 
 <script>
     (function(){
-        const canvas = document.getElementById('sketchCanvas');
-        const ctx = canvas.getContext('2d');
+        // 获取两个 canvas
+        const sketchCanvas = document.getElementById('sketchCanvas');
+        const ctx = sketchCanvas.getContext('2d');
+        const gridCanvas = document.getElementById('gridCanvas');
+        const gridCtx = gridCanvas.getContext('2d');
         
         let canvasWidth = 0, canvasHeight = 0;
         let drawing = false;
@@ -389,7 +420,11 @@
         let stickerMode = false;
         let activeSticker = null;
         
-        // 历史记录（优化：确保初始状态存在，每笔绘画后保存）
+        // 网格功能（独立图层）
+        let gridEnabled = false;
+        let gridSpacing = 40; // 默认间距40px
+        
+        // 历史记录
         let undoStack = [];
         let redoStack = [];
         const MAX_HISTORY = 50;
@@ -645,7 +680,7 @@
                 }
             }
             ctx.restore();
-            saveToUndoImmediate(); // 形状提交后立即保存
+            saveToUndoImmediate();
         }
         
         // 吸管
@@ -671,13 +706,45 @@
             saveToUndoImmediate();
         }
         
-        // ---------- 历史记录核心（修复版）----------
+        // ---------- 网格绘制（独立图层）----------
+        function drawGridOnLayer() {
+            if (!gridEnabled) {
+                // 清空网格层
+                gridCtx.clearRect(0, 0, canvasWidth, canvasHeight);
+                return;
+            }
+            gridCtx.clearRect(0, 0, canvasWidth, canvasHeight);
+            gridCtx.save();
+            gridCtx.globalAlpha = 0.35;
+            gridCtx.strokeStyle = '#888888';
+            gridCtx.lineWidth = 1;
+            const step = gridSpacing;
+            for (let x = 0; x < canvasWidth; x += step) {
+                gridCtx.beginPath();
+                gridCtx.moveTo(x, 0);
+                gridCtx.lineTo(x, canvasHeight);
+                gridCtx.stroke();
+            }
+            for (let y = 0; y < canvasHeight; y += step) {
+                gridCtx.beginPath();
+                gridCtx.moveTo(0, y);
+                gridCtx.lineTo(canvasWidth, y);
+                gridCtx.stroke();
+            }
+            gridCtx.restore();
+        }
+        
+        function refreshGrid() {
+            drawGridOnLayer();
+        }
+        
+        // 历史记录（复制原函数）
         function captureSnapshot() {
             if (canvasWidth === 0) return null;
             const off = document.createElement('canvas');
             off.width = canvasWidth;
             off.height = canvasHeight;
-            off.getContext('2d').drawImage(canvas, 0, 0);
+            off.getContext('2d').drawImage(sketchCanvas, 0, 0);
             return off;
         }
         
@@ -688,7 +755,6 @@
             }
         }
         
-        // 立即保存当前状态到撤销栈（清空重做栈）
         function saveToUndoImmediate() {
             if (saveTimer) clearTimeout(saveTimer);
             const snap = captureSnapshot();
@@ -699,7 +765,6 @@
             }
         }
         
-        // 延迟保存（用于连续绘画结束时）
         function saveToUndo() {
             if (saveTimer) clearTimeout(saveTimer);
             saveTimer = setTimeout(() => {
@@ -714,11 +779,12 @@
         }
         
         function undo() {
-            if (undoStack.length <= 1) return; // 至少保留一个初始状态
+            if (undoStack.length <= 1) return;
             const cur = captureSnapshot();
             if (cur) redoStack.push(cur);
             const prev = undoStack.pop();
             restoreFromSnapshot(prev);
+            refreshGrid(); // 恢复后重绘网格
         }
         
         function redo() {
@@ -727,16 +793,16 @@
             const cur = captureSnapshot();
             if (cur) undoStack.push(cur);
             restoreFromSnapshot(next);
+            refreshGrid();
         }
         
-        // 清空画布（同时清空历史记录，使清空成为新的起点）
         function clearCanvas() {
             ctx.fillStyle = currentBgColor;
             ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-            // 清空所有历史，并保存当前空白状态作为唯一记录
             undoStack = [];
             redoStack = [];
-            saveToUndoImmediate(); // 保存空白状态
+            saveToUndoImmediate();
+            refreshGrid();
         }
         
         function setBackgroundColor(newColor) {
@@ -747,6 +813,7 @@
             ctx.fillRect(0, 0, canvasWidth, canvasHeight);
             if (snap) ctx.drawImage(snap, 0, 0);
             saveToUndoImmediate();
+            refreshGrid();
         }
         
         // 颜色历史
@@ -782,9 +849,9 @@
         
         // 坐标转换
         function getCoords(e) {
-            const rect = canvas.getBoundingClientRect();
-            const sx = canvas.width / rect.width;
-            const sy = canvas.height / rect.height;
+            const rect = sketchCanvas.getBoundingClientRect();
+            const sx = sketchCanvas.width / rect.width;
+            const sy = sketchCanvas.height / rect.height;
             let cx, cy;
             if (e.touches) {
                 cx = e.touches[0].clientX;
@@ -795,12 +862,11 @@
             }
             let x = (cx - rect.left) * sx;
             let y = (cy - rect.top) * sy;
-            x = Math.min(Math.max(x, 0), canvas.width);
-            y = Math.min(Math.max(y, 0), canvas.height);
+            x = Math.min(Math.max(x, 0), sketchCanvas.width);
+            y = Math.min(Math.max(y, 0), sketchCanvas.height);
             return { x, y };
         }
         
-        // 事件处理（优化形状结束时的坐标获取）
         let lastMovePoint = { x: 0, y: 0 };
         
         function onMouseDown(e) {
@@ -815,6 +881,7 @@
             }
             if (stickerMode && activeSticker) {
                 placeSticker(activeSticker, x, y);
+                refreshGrid();
                 return;
             }
             if (shapeMode) {
@@ -829,6 +896,7 @@
             let col = currentColor;
             if (currentBrush === 'rainbow' && !eraserMode) col = getRainbowColor();
             drawBrushDotWithSymmetry(x, y, brushSize, col, currentBrush, eraserMode, 0.3, 0);
+            refreshGrid();
         }
         
         function onMouseMove(e) {
@@ -837,6 +905,7 @@
             if (shapeDrawing) {
                 if (undoStack.length) restoreFromSnapshot(undoStack[undoStack.length-1]);
                 drawShapePreview(shapeStartX, shapeStartY, x, y, shapeMode);
+                refreshGrid();
                 return;
             }
             if (drawing) {
@@ -846,6 +915,7 @@
                 drawLineSegWithSymmetry(lastX, lastY, x, y, brushSize, finalColor, currentBrush, eraserMode, dt);
                 lastX = x; lastY = y;
                 lastTime = performance.now();
+                refreshGrid();
             }
         }
         
@@ -854,12 +924,29 @@
                 const { x, y } = getCoords(e);
                 commitShape(shapeStartX, shapeStartY, x, y, shapeMode);
                 shapeDrawing = false;
+                refreshGrid();
                 return;
             }
             if (drawing) {
                 drawing = false;
-                saveToUndo(); // 延迟保存，确保连续绘画只记录一次
+                saveToUndo();
+                refreshGrid();
             }
+        }
+        
+        function resizeCanvas() {
+            canvasWidth = window.innerWidth;
+            canvasHeight = window.innerHeight;
+            sketchCanvas.width = canvasWidth;
+            sketchCanvas.height = canvasHeight;
+            gridCanvas.width = canvasWidth;
+            gridCanvas.height = canvasHeight;
+            ctx.fillStyle = currentBgColor;
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+            undoStack = [];
+            redoStack = [];
+            saveToUndoImmediate();
+            refreshGrid();
         }
         
         // UI 初始化与工具栏折叠
@@ -911,6 +998,14 @@
             document.getElementById('symmetryVBtn').addEventListener('click', () => {
                 symmetryV = !symmetryV;
                 document.getElementById('symmetryVBtn').classList.toggle('active', symmetryV);
+            });
+            
+            // 网格开关
+            const gridBtn = document.getElementById('gridToggleBtn');
+            gridBtn.addEventListener('click', () => {
+                gridEnabled = !gridEnabled;
+                gridBtn.classList.toggle('active', gridEnabled);
+                refreshGrid();
             });
             
             const eyedropper = document.getElementById('eyedropperBtn');
@@ -1005,7 +1100,7 @@
                 try {
                     const a = document.createElement('a');
                     a.download = `sketch_${Date.now()}.png`;
-                    a.href = canvas.toDataURL();
+                    a.href = sketchCanvas.toDataURL();
                     a.click();
                 } catch(e) {}
             });
@@ -1018,34 +1113,21 @@
             });
         }
         
-        function resizeCanvas() {
-            canvasWidth = window.innerWidth;
-            canvasHeight = window.innerHeight;
-            canvas.width = canvasWidth;
-            canvas.height = canvasHeight;
-            ctx.fillStyle = currentBgColor;
-            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-            // 重置历史（尺寸改变会清空内容，重新保存空白状态）
-            undoStack = [];
-            redoStack = [];
-            saveToUndoImmediate();
-        }
-        
         function init() {
             resizeCanvas();
             setupUI();
             renderColorHistory();
             addColorToHistory(currentColor);
-            // 确保初始空白状态已保存
             saveToUndoImmediate();
+            refreshGrid();
             
-            canvas.addEventListener('mousedown', onMouseDown);
+            sketchCanvas.addEventListener('mousedown', onMouseDown);
             window.addEventListener('mousemove', onMouseMove);
             window.addEventListener('mouseup', onMouseUp);
-            canvas.addEventListener('touchstart', onMouseDown, { passive: false });
+            sketchCanvas.addEventListener('touchstart', onMouseDown, { passive: false });
             window.addEventListener('touchmove', onMouseMove, { passive: false });
             window.addEventListener('touchend', onMouseUp);
-            canvas.addEventListener('dragstart', e => e.preventDefault());
+            sketchCanvas.addEventListener('dragstart', e => e.preventDefault());
             window.addEventListener('resize', () => {
                 resizeCanvas();
             });
