@@ -235,7 +235,7 @@
         .sticker-panel {
             position: fixed;
             left: 12px;
-            bottom: 20px;
+            bottom: 80px;
             background: rgba(28, 32, 40, 0.9);
             backdrop-filter: blur(20px);
             border-radius: 32px;
@@ -272,6 +272,9 @@
             .history-color { width: 36px; height: 36px; }
             .toggle-btn { width: 44px; height: 44px; font-size: 22px; }
             input[type="range"] { width: 100px; }
+            .sticker-panel {
+                bottom: 80px;  /* 提高位置，避免与撤销按钮重叠 */
+            }
             .sticker-item { width: 44px; height: 44px; font-size: 24px; }
             .fixed-undo-redo { bottom: 16px; right: 16px; padding: 6px 12px; gap: 8px; }
             .fixed-undo-redo .action-btn { width: 44px; height: 44px; font-size: 20px; }
