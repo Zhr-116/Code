@@ -20,7 +20,6 @@
             touch-action: none;
         }
 
-        /* 画布容器，相对定位用于叠加网格层 */
         .canvas-container {
             position: fixed;
             top: 0;
@@ -45,7 +44,7 @@
         }
 
         #gridCanvas {
-            pointer-events: none;  /* 让网格层不干扰绘画 */
+            pointer-events: none;
             z-index: 2;
             background: transparent;
         }
@@ -212,7 +211,6 @@
             cursor: pointer;
         }
 
-        /* 固定撤销/重做按钮组（右下角） */
         .fixed-undo-redo {
             position: fixed;
             bottom: 20px;
@@ -317,6 +315,16 @@
                 <div class="brush-icon" data-brush="spray">喷枪</div>
                 <div class="brush-icon" data-brush="marker">马克笔</div>
             </div>
+            <div class="size-control">
+                <span>笔刷大小</span>
+                <input type="range" id="brushSizeSlider" min="3" max="52" value="18" step="1">
+                <span id="sizeValue" style="min-width: 28px;">18</span>
+            </div>
+            <div class="size-control" style="margin-top: 8px;">
+                <span>平滑度</span>
+                <input type="range" id="smoothnessSlider" min="0.5" max="5" step="0.1" value="2.2">
+                <span id="smoothnessValue">2.2</span>
+            </div>
         </div>
         <div class="tool-group">
             <div class="group-title">形状</div>
@@ -338,6 +346,17 @@
             <div class="icons-row">
                 <div class="tool-btn" id="gridToggleBtn">网格</div>
             </div>
+            <div class="size-control" style="margin-top: 8px;">
+                <span>网格间距</span>
+                <input type="range" id="gridSpacingSlider" min="20" max="100" value="40" step="5">
+                <span id="gridSpacingValue">40</span>
+            </div>
+            <div class="group-title">旋转</div>
+            <div class="icons-row">
+                <div class="action-btn" id="rotateLeftBtn">↺ 左转</div>
+                <div class="action-btn" id="rotateRightBtn">↻ 右转</div>
+                <div class="action-btn" id="rotate180Btn">⟲ 180°</div>
+            </div>
         </div>
         <div class="tool-group">
             <div class="group-title">工具</div>
@@ -345,6 +364,13 @@
                 <div class="tool-btn" id="eyedropperBtn">吸管</div>
                 <div class="tool-btn" id="stickerToggleBtn">贴纸</div>
                 <div class="eraser-btn" id="eraserBtn">橡皮</div>
+            </div>
+        </div>
+        <div class="tool-group">
+            <div class="group-title">变换</div>
+            <div class="icons-row">
+                <div class="tool-btn" id="flipHBtn">水平翻转</div>
+                <div class="tool-btn" id="flipVBtn">垂直翻转</div>
             </div>
         </div>
         <div class="tool-group">
@@ -366,13 +392,6 @@
             <div class="icons-row" id="colorHistoryGroup"></div>
         </div>
         <div class="tool-group">
-            <div class="size-control">
-                <span>笔刷大小</span>
-                <input type="range" id="brushSizeSlider" min="3" max="52" value="18" step="1">
-                <span id="sizeValue" style="min-width: 28px;">18</span>
-            </div>
-        </div>
-        <div class="tool-group">
             <div class="group-title">背景</div>
             <div class="icons-row">
                 <div class="bg-btn" id="bgColorBtn" style="background: #fdf4e0;">选色</div>
@@ -384,6 +403,15 @@
             <div class="icons-row">
                 <div class="action-btn" id="clearCanvasBtn">清空</div>
                 <div class="action-btn" id="saveCanvasBtn">保存</div>
+                <div class="action-btn" id="saveTransparentBtn">透明导出</div>
+            </div>
+        </div>
+        <div class="tool-group">
+            <div class="group-title">滤镜</div>
+            <div class="icons-row">
+                <div class="action-btn" id="filterGrayscaleBtn">灰度</div>
+                <div class="action-btn" id="filterSepiaBtn">复古</div>
+                <div class="action-btn" id="filterInvertBtn">反相</div>
             </div>
         </div>
     </div>
@@ -391,12 +419,13 @@
 
 <script>
     (function(){
-        // 获取两个 canvas
+        // ========== 1. DOM 元素 ==========
         const sketchCanvas = document.getElementById('sketchCanvas');
         const ctx = sketchCanvas.getContext('2d');
         const gridCanvas = document.getElementById('gridCanvas');
         const gridCtx = gridCanvas.getContext('2d');
         
+        // ========== 2. 全局状态 ==========
         let canvasWidth = 0, canvasHeight = 0;
         let drawing = false;
         let lastX = 0, lastY = 0;
@@ -404,6 +433,7 @@
         let currentBrush = 'watercolor';
         let currentColor = '#f3b33d';
         let brushSize = 18;
+        let smoothness = 2.2;   // 默认值，越大越粗糙，越小越顺滑
         let eraserMode = false;
         let rainbowHue = 0;
         let currentBgColor = '#ffffff';
@@ -420,9 +450,8 @@
         let stickerMode = false;
         let activeSticker = null;
         
-        // 网格功能（独立图层）
         let gridEnabled = false;
-        let gridSpacing = 40; // 默认间距40px
+        let gridSpacing = 40;
         
         // 历史记录
         let undoStack = [];
@@ -430,6 +459,7 @@
         const MAX_HISTORY = 50;
         let saveTimer = null;
         
+        // ========== 3. 辅助函数 ==========
         function getCenter() { return { x: canvasWidth / 2, y: canvasHeight / 2 }; }
         function getMirrorPoints(x, y) {
             const points = [{x, y}];
@@ -439,129 +469,30 @@
             if (symmetryH && symmetryV) points.push({x: center.x * 2 - x, y: center.y * 2 - y});
             return points;
         }
-        
         function getRainbowColor() { const hue = rainbowHue % 360; rainbowHue = (rainbowHue + 6) % 360; return `hsl(${hue}, 80%, 65%)`; }
         
-        // 笔刷绘制函数（保持原有质感）
+        // ========== 4. 笔刷绘制 ==========
         function drawWatercolor(x, y, size, color) {
-            ctx.save();
-            ctx.globalAlpha = 0.35;
-            ctx.beginPath();
-            ctx.ellipse(x, y, size * 0.85, size * 0.7, 0, 0, Math.PI*2);
-            ctx.fillStyle = color;
-            ctx.fill();
-            ctx.globalAlpha = 0.25;
-            for(let i=0;i<3;i++) {
-                let offX = (Math.random() - 0.5) * size * 0.65;
-                let offY = (Math.random() - 0.5) * size * 0.65;
-                ctx.beginPath();
-                ctx.ellipse(x + offX, y + offY, size * 0.6, size * 0.55, 0, 0, Math.PI*2);
-                ctx.fill();
-            }
-            ctx.globalAlpha = 0.55;
-            ctx.beginPath();
-            ctx.ellipse(x, y, size * 0.45, size * 0.4, 0, 0, Math.PI*2);
-            ctx.fill();
-            ctx.restore();
+            ctx.save(); ctx.globalAlpha = 0.35; ctx.beginPath(); ctx.ellipse(x, y, size * 0.85, size * 0.7, 0, 0, Math.PI*2); ctx.fillStyle = color; ctx.fill(); ctx.globalAlpha = 0.25; for(let i=0;i<3;i++) { let offX = (Math.random() - 0.5) * size * 0.65; let offY = (Math.random() - 0.5) * size * 0.65; ctx.beginPath(); ctx.ellipse(x + offX, y + offY, size * 0.6, size * 0.55, 0, 0, Math.PI*2); ctx.fill(); } ctx.globalAlpha = 0.55; ctx.beginPath(); ctx.ellipse(x, y, size * 0.45, size * 0.4, 0, 0, Math.PI*2); ctx.fill(); ctx.restore();
         }
         function drawChineseBrush(x, y, size, color, speed, angle) {
-            ctx.save();
-            ctx.globalAlpha = 0.88;
-            let dynamicSize = size * Math.max(0.4, Math.min(1.0, 1.0 - speed * 0.7));
-            dynamicSize = Math.max(4, dynamicSize);
-            const major = dynamicSize * 0.95;
-            const minor = dynamicSize * 0.55;
-            ctx.beginPath();
-            ctx.ellipse(x, y, major, minor, angle, 0, Math.PI*2);
-            ctx.fillStyle = color;
-            ctx.fill();
-            ctx.globalAlpha = 0.45;
-            for(let i=0;i<4;i++) {
-                ctx.beginPath();
-                ctx.arc(x + (Math.random()-0.5)*dynamicSize*0.8, y + (Math.random()-0.5)*dynamicSize*0.7, dynamicSize*0.12, 0, Math.PI*2);
-                ctx.fill();
-            }
-            ctx.restore();
+            ctx.save(); ctx.globalAlpha = 0.88; let dynamicSize = size * Math.max(0.4, Math.min(1.0, 1.0 - speed * 0.7)); dynamicSize = Math.max(4, dynamicSize); const major = dynamicSize * 0.95; const minor = dynamicSize * 0.55; ctx.beginPath(); ctx.ellipse(x, y, major, minor, angle, 0, Math.PI*2); ctx.fillStyle = color; ctx.fill(); ctx.globalAlpha = 0.45; for(let i=0;i<4;i++) { ctx.beginPath(); ctx.arc(x + (Math.random()-0.5)*dynamicSize*0.8, y + (Math.random()-0.5)*dynamicSize*0.7, dynamicSize*0.12, 0, Math.PI*2); ctx.fill(); } ctx.restore();
         }
         function drawCrayon(x, y, size, color) {
-            ctx.save();
-            ctx.globalAlpha = 0.92;
-            const grain = Math.floor(size * 1.2);
-            for(let i=0;i<grain;i++) {
-                let offX = (Math.random() - 0.5) * size;
-                let offY = (Math.random() - 0.5) * size;
-                ctx.beginPath();
-                ctx.arc(x + offX, y + offY, Math.max(1.2, size * 0.12), 0, Math.PI*2);
-                ctx.fillStyle = color + 'cc';
-                ctx.fill();
-            }
-            ctx.beginPath();
-            ctx.arc(x, y, size * 0.48, 0, Math.PI*2);
-            ctx.fillStyle = color;
-            ctx.fill();
-            ctx.restore();
+            ctx.save(); ctx.globalAlpha = 0.92; const grain = Math.floor(size * 1.2); for(let i=0;i<grain;i++) { let offX = (Math.random() - 0.5) * size; let offY = (Math.random() - 0.5) * size; ctx.beginPath(); ctx.arc(x + offX, y + offY, Math.max(1.2, size * 0.12), 0, Math.PI*2); ctx.fillStyle = color + 'cc'; ctx.fill(); } ctx.beginPath(); ctx.arc(x, y, size * 0.48, 0, Math.PI*2); ctx.fillStyle = color; ctx.fill(); ctx.restore();
         }
         function drawRainbow(x, y, size) {
-            ctx.save();
-            const points = 7 + Math.floor(size / 7);
-            for(let i=0;i<points;i++) {
-                let a = Math.random() * Math.PI * 2;
-                let r = Math.random() * size * 0.85;
-                let px = x + Math.cos(a) * r;
-                let py = y + Math.sin(a) * r;
-                ctx.beginPath();
-                ctx.arc(px, py, size * 0.24, 0, Math.PI*2);
-                ctx.fillStyle = getRainbowColor();
-                ctx.fill();
-            }
-            ctx.beginPath();
-            ctx.arc(x, y, size * 0.4, 0, Math.PI*2);
-            ctx.fillStyle = `hsl(${rainbowHue}, 85%, 70%)`;
-            ctx.fill();
-            ctx.restore();
+            ctx.save(); const points = 7 + Math.floor(size / 7); for(let i=0;i<points;i++) { let a = Math.random() * Math.PI * 2; let r = Math.random() * size * 0.85; let px = x + Math.cos(a) * r; let py = y + Math.sin(a) * r; ctx.beginPath(); ctx.arc(px, py, size * 0.24, 0, Math.PI*2); ctx.fillStyle = getRainbowColor(); ctx.fill(); } ctx.beginPath(); ctx.arc(x, y, size * 0.4, 0, Math.PI*2); ctx.fillStyle = `hsl(${rainbowHue}, 85%, 70%)`; ctx.fill(); ctx.restore();
         }
         function drawSpray(x, y, size, color) {
-            ctx.save();
-            const count = Math.floor(size * 2.2);
-            for(let i=0;i<count;i++) {
-                let a = Math.random() * Math.PI * 2;
-                let r = Math.random() * size * 0.95;
-                let px = x + Math.cos(a) * r;
-                let py = y + Math.sin(a) * r;
-                ctx.beginPath();
-                ctx.arc(px, py, Math.max(1, size * 0.1), 0, Math.PI*2);
-                ctx.fillStyle = color + 'aa';
-                ctx.fill();
-            }
-            ctx.restore();
+            ctx.save(); const count = Math.floor(size * 2.2); for(let i=0;i<count;i++) { let a = Math.random() * Math.PI * 2; let r = Math.random() * size * 0.95; let px = x + Math.cos(a) * r; let py = y + Math.sin(a) * r; ctx.beginPath(); ctx.arc(px, py, Math.max(1, size * 0.1), 0, Math.PI*2); ctx.fillStyle = color + 'aa'; ctx.fill(); } ctx.restore();
         }
         function drawMarker(x, y, size, color) {
-            ctx.save();
-            ctx.globalAlpha = 0.7;
-            ctx.beginPath();
-            ctx.ellipse(x, y, size * 0.85, size * 0.65, 0.2, 0, Math.PI*2);
-            ctx.fillStyle = color;
-            ctx.fill();
-            ctx.globalAlpha = 0.85;
-            ctx.beginPath();
-            ctx.ellipse(x-2, y-1, size*0.4, size*0.3, 0, 0, Math.PI*2);
-            ctx.fill();
-            ctx.restore();
+            ctx.save(); ctx.globalAlpha = 0.7; ctx.beginPath(); ctx.ellipse(x, y, size * 0.85, size * 0.65, 0.2, 0, Math.PI*2); ctx.fillStyle = color; ctx.fill(); ctx.globalAlpha = 0.85; ctx.beginPath(); ctx.ellipse(x-2, y-1, size*0.4, size*0.3, 0, 0, Math.PI*2); ctx.fill(); ctx.restore();
         }
         function drawEraser(x, y, size) {
-            ctx.save();
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.globalAlpha = 1;
-            ctx.beginPath();
-            ctx.arc(x, y, size * 0.75, 0, Math.PI*2);
-            ctx.fillStyle = currentBgColor;
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(x-1, y-1, size * 0.55, 0, Math.PI*2);
-            ctx.fill();
-            ctx.restore();
+            ctx.save(); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; ctx.beginPath(); ctx.arc(x, y, size * 0.75, 0, Math.PI*2); ctx.fillStyle = currentBgColor; ctx.fill(); ctx.beginPath(); ctx.arc(x-1, y-1, size * 0.55, 0, Math.PI*2); ctx.fill(); ctx.restore();
         }
-        
         function drawBrushDot(x, y, size, color, brush, isEraser, speed=0.3, angle=0) {
             if (isEraser) { drawEraser(x, y, size); return; }
             switch(brush) {
@@ -574,30 +505,12 @@
                 default: drawWatercolor(x, y, size, color);
             }
         }
-        
         function drawLineSeg(x0, y0, x1, y1, size, color, brush, isEraser, dt) {
             const dist = Math.hypot(x1 - x0, y1 - y0);
-            if (dist < 0.8) {
-                let sp=0.3, ang=0;
-                if(brush==='chineseBrush' && !isEraser) { sp=0.3; }
-                drawBrushDot(x0, y0, size, color, brush, isEraser, sp, ang);
-                return;
-            }
-            const steps = Math.max(2, Math.floor(dist/2.2));
-            for(let s=0;s<=steps;s++) {
-                const t = s/steps;
-                const cx = x0 + (x1-x0)*t;
-                const cy = y0 + (y1-y0)*t;
-                let sp=0.3, ang=0;
-                if(brush==='chineseBrush' && !isEraser) {
-                    ang = Math.atan2(y1-y0, x1-x0);
-                    const spd = dt>0 ? dist/dt : 0.3;
-                    sp = Math.min(1.0, spd/12);
-                }
-                drawBrushDot(cx, cy, size, color, brush, isEraser, sp, ang);
-            }
+            if (dist < 0.8) { let sp=0.3, ang=0; if(brush==='chineseBrush' && !isEraser) { sp=0.3; } drawBrushDot(x0, y0, size, color, brush, isEraser, sp, ang); return; }
+            const steps = Math.max(2, Math.floor(dist / smoothness));
+            for(let s=0;s<=steps;s++) { const t = s/steps; const cx = x0 + (x1-x0)*t; const cy = y0 + (y1-y0)*t; let sp=0.3, ang=0; if(brush==='chineseBrush' && !isEraser) { ang = Math.atan2(y1-y0, x1-x0); const spd = dt>0 ? dist/dt : 0.3; sp = Math.min(1.0, spd/12); } drawBrushDot(cx, cy, size, color, brush, isEraser, sp, ang); }
         }
-        
         function drawLineSegWithSymmetry(x0, y0, x1, y1, size, color, brush, isEraser, dt) {
             const points0 = getMirrorPoints(x0, y0);
             const points1 = getMirrorPoints(x1, y1);
@@ -605,85 +518,70 @@
                 drawLineSeg(points0[i].x, points0[i].y, points1[i].x, points1[i].y, size, color, brush, isEraser, dt);
             }
         }
-        
         function drawBrushDotWithSymmetry(x, y, size, color, brush, isEraser, speed, angle) {
             const points = getMirrorPoints(x, y);
-            for (let p of points) {
-                if (p.x >= 0 && p.x <= canvasWidth && p.y >= 0 && p.y <= canvasHeight) {
-                    drawBrushDot(p.x, p.y, size, color, brush, isEraser, speed, angle);
-                }
-            }
+            for (let p of points) { if (p.x >= 0 && p.x <= canvasWidth && p.y >= 0 && p.y <= canvasHeight) { drawBrushDot(p.x, p.y, size, color, brush, isEraser, speed, angle); } }
         }
         
         // 形状预览与提交
         function drawShapePreview(x1, y1, x2, y2, shape) {
-            ctx.save();
-            ctx.beginPath();
-            ctx.lineWidth = brushSize;
-            ctx.strokeStyle = currentColor;
-            ctx.globalAlpha = 0.7;
-            if (shape === 'line') {
-                ctx.moveTo(x1, y1);
-                ctx.lineTo(x2, y2);
-                ctx.stroke();
-            } else if (shape === 'rect') {
-                let w = x2 - x1, h = y2 - y1;
-                if (shiftKeyPressed) {
-                    const side = Math.min(Math.abs(w), Math.abs(h));
-                    w = w > 0 ? side : -side;
-                    h = h > 0 ? side : -side;
-                }
-                ctx.strokeRect(x1, y1, w, h);
-            } else if (shape === 'circle') {
-                let rx = (x2 - x1)/2, ry = (y2 - y1)/2, cx = x1 + rx, cy = y1 + ry;
-                if (shiftKeyPressed) {
-                    const r = Math.min(Math.abs(rx), Math.abs(ry));
-                    rx = r;
-                    ry = r;
-                }
-                ctx.ellipse(cx, cy, Math.abs(rx), Math.abs(ry), 0, 0, Math.PI*2);
-                ctx.stroke();
-            }
+            ctx.save(); ctx.beginPath(); ctx.lineWidth = brushSize; ctx.strokeStyle = currentColor; ctx.globalAlpha = 0.7;
+            if (shape === 'line') { ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); }
+            else if (shape === 'rect') { let w = x2 - x1, h = y2 - y1; if (shiftKeyPressed) { const side = Math.min(Math.abs(w), Math.abs(h)); w = w > 0 ? side : -side; h = h > 0 ? side : -side; } ctx.strokeRect(x1, y1, w, h); }
+            else if (shape === 'circle') { let rx = (x2 - x1)/2, ry = (y2 - y1)/2, cx = x1 + rx, cy = y1 + ry; if (shiftKeyPressed) { const r = Math.min(Math.abs(rx), Math.abs(ry)); rx = r; ry = r; } ctx.ellipse(cx, cy, Math.abs(rx), Math.abs(ry), 0, 0, Math.PI*2); ctx.stroke(); }
             ctx.restore();
         }
-        
         function commitShape(x1, y1, x2, y2, shape) {
             const points = getMirrorPoints(x1, y1);
             const points2 = getMirrorPoints(x2, y2);
-            ctx.save();
-            ctx.lineWidth = brushSize;
-            ctx.strokeStyle = currentColor;
+            const finalColor = (currentBrush === 'rainbow' && !eraserMode) ? getRainbowColor() : currentColor;
             for (let i = 0; i < points.length; i++) {
                 const p1 = points[i], p2 = points2[i];
-                ctx.beginPath();
                 if (shape === 'line') {
-                    ctx.moveTo(p1.x, p1.y);
-                    ctx.lineTo(p2.x, p2.y);
-                    ctx.stroke();
+                    // 直线：沿线段绘制笔刷点
+                    drawBrushAlongLine(p1.x, p1.y, p2.x, p2.y, currentBrush, finalColor, brushSize, eraserMode);
                 } else if (shape === 'rect') {
+                    // 矩形：绘制四条边
                     let w = p2.x - p1.x, h = p2.y - p1.y;
                     if (shiftKeyPressed) {
                         const side = Math.min(Math.abs(w), Math.abs(h));
                         w = w > 0 ? side : -side;
                         h = h > 0 ? side : -side;
+                        p2.x = p1.x + w;
+                        p2.y = p1.y + h;
                     }
-                    ctx.strokeRect(p1.x, p1.y, w, h);
+                    const topLeft = { x: p1.x, y: p1.y };
+                    const topRight = { x: p1.x + w, y: p1.y };
+                    const bottomLeft = { x: p1.x, y: p1.y + h };
+                    const bottomRight = { x: p1.x + w, y: p1.y + h };
+                    drawBrushAlongLine(topLeft.x, topLeft.y, topRight.x, topRight.y, currentBrush, finalColor, brushSize, eraserMode);
+                    drawBrushAlongLine(topRight.x, topRight.y, bottomRight.x, bottomRight.y, currentBrush, finalColor, brushSize, eraserMode);
+                    drawBrushAlongLine(bottomRight.x, bottomRight.y, bottomLeft.x, bottomLeft.y, currentBrush, finalColor, brushSize, eraserMode);
+                    drawBrushAlongLine(bottomLeft.x, bottomLeft.y, topLeft.x, topLeft.y, currentBrush, finalColor, brushSize, eraserMode);
                 } else if (shape === 'circle') {
-                    let rx = (p2.x - p1.x)/2, ry = (p2.y - p1.y)/2, cx = p1.x + rx, cy = p1.y + ry;
+                    // 圆形：将圆离散成若干点，然后沿圆周绘制笔刷点
+                    let rx = (p2.x - p1.x) / 2, ry = (p2.y - p1.y) / 2;
+                    let cx = p1.x + rx, cy = p1.y + ry;
                     if (shiftKeyPressed) {
                         const r = Math.min(Math.abs(rx), Math.abs(ry));
-                        rx = r;
-                        ry = r;
+                        rx = r * (rx > 0 ? 1 : -1);
+                        ry = r * (ry > 0 ? 1 : -1);
                     }
-                    ctx.ellipse(cx, cy, Math.abs(rx), Math.abs(ry), 0, 0, Math.PI*2);
-                    ctx.stroke();
+                    const absRx = Math.abs(rx), absRy = Math.abs(ry);
+                    const circumference = Math.PI * (absRx + absRy); // 近似周长
+                    const steps = Math.max(20, Math.floor(circumference / 3));
+                    for (let step = 0; step <= steps; step++) {
+                        const angle = (step / steps) * Math.PI * 2;
+                        const px = cx + absRx * Math.cos(angle);
+                        const py = cy + absRy * Math.sin(angle);
+                        drawBrushDot(px, py, brushSize, finalColor, currentBrush, eraserMode, 0.3, 0);
+                    }
                 }
             }
-            ctx.restore();
             saveToUndoImmediate();
         }
         
-        // 吸管
+        // 吸管、贴纸
         function pickColorAt(x, y) {
             if (x < 0 || y < 0 || x >= canvasWidth || y >= canvasHeight) return;
             const pixel = ctx.getImageData(x, y, 1, 1).data;
@@ -693,130 +591,184 @@
             document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
             addColorToHistory(hex);
         }
-        
-        // 贴纸
         function placeSticker(stickerChar, x, y) {
-            ctx.save();
-            ctx.font = `${brushSize * 1.5}px "Segoe UI Emoji", "Apple Color Emoji", system-ui`;
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillStyle = currentColor;
-            ctx.fillText(stickerChar, x, y);
-            ctx.restore();
+            ctx.save(); ctx.font = `${brushSize * 1.5}px "Segoe UI Emoji", "Apple Color Emoji", system-ui`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = currentColor; ctx.fillText(stickerChar, x, y); ctx.restore();
             saveToUndoImmediate();
         }
         
-        // ---------- 网格绘制（独立图层）----------
+        // ========== 5. 网格独立图层 ==========
         function drawGridOnLayer() {
-            if (!gridEnabled) {
-                // 清空网格层
-                gridCtx.clearRect(0, 0, canvasWidth, canvasHeight);
-                return;
-            }
+            if (!gridEnabled) { gridCtx.clearRect(0, 0, canvasWidth, canvasHeight); return; }
             gridCtx.clearRect(0, 0, canvasWidth, canvasHeight);
-            gridCtx.save();
-            gridCtx.globalAlpha = 0.35;
-            gridCtx.strokeStyle = '#888888';
-            gridCtx.lineWidth = 1;
-            const step = gridSpacing;
-            for (let x = 0; x < canvasWidth; x += step) {
-                gridCtx.beginPath();
-                gridCtx.moveTo(x, 0);
-                gridCtx.lineTo(x, canvasHeight);
-                gridCtx.stroke();
-            }
-            for (let y = 0; y < canvasHeight; y += step) {
-                gridCtx.beginPath();
-                gridCtx.moveTo(0, y);
-                gridCtx.lineTo(canvasWidth, y);
-                gridCtx.stroke();
-            }
+            gridCtx.save(); gridCtx.globalAlpha = 0.35; gridCtx.strokeStyle = '#888'; gridCtx.lineWidth = 1;
+            for (let x = 0; x < canvasWidth; x += gridSpacing) { gridCtx.beginPath(); gridCtx.moveTo(x, 0); gridCtx.lineTo(x, canvasHeight); gridCtx.stroke(); }
+            for (let y = 0; y < canvasHeight; y += gridSpacing) { gridCtx.beginPath(); gridCtx.moveTo(0, y); gridCtx.lineTo(canvasWidth, y); gridCtx.stroke(); }
             gridCtx.restore();
         }
+        function refreshGrid() { drawGridOnLayer(); }
         
-        function refreshGrid() {
-            drawGridOnLayer();
-        }
-        
-        // 历史记录（复制原函数）
+        // ========== 6. 历史记录 ==========
         function captureSnapshot() {
             if (canvasWidth === 0) return null;
-            const off = document.createElement('canvas');
-            off.width = canvasWidth;
-            off.height = canvasHeight;
+            const off = document.createElement('canvas'); off.width = canvasWidth; off.height = canvasHeight;
             off.getContext('2d').drawImage(sketchCanvas, 0, 0);
             return off;
         }
-        
-        function restoreFromSnapshot(snapshot) {
-            if (snapshot) {
-                ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-                ctx.drawImage(snapshot, 0, 0);
-            }
-        }
-        
+        function restoreFromSnapshot(snapshot) { if (snapshot) { ctx.clearRect(0, 0, canvasWidth, canvasHeight); ctx.drawImage(snapshot, 0, 0); } }
         function saveToUndoImmediate() {
             if (saveTimer) clearTimeout(saveTimer);
             const snap = captureSnapshot();
-            if (snap) {
-                undoStack.push(snap);
-                if (undoStack.length > MAX_HISTORY) undoStack.shift();
-                redoStack = [];
-            }
+            if (snap) { undoStack.push(snap); if (undoStack.length > MAX_HISTORY) undoStack.shift(); redoStack = []; }
         }
-        
         function saveToUndo() {
             if (saveTimer) clearTimeout(saveTimer);
-            saveTimer = setTimeout(() => {
-                const snap = captureSnapshot();
-                if (snap) {
-                    undoStack.push(snap);
-                    if (undoStack.length > MAX_HISTORY) undoStack.shift();
-                    redoStack = [];
-                }
-                saveTimer = null;
-            }, 30);
+            saveTimer = setTimeout(() => { const snap = captureSnapshot(); if (snap) { undoStack.push(snap); if (undoStack.length > MAX_HISTORY) undoStack.shift(); redoStack = []; } saveTimer = null; }, 30);
         }
-        
         function undo() {
             if (undoStack.length <= 1) return;
-            const cur = captureSnapshot();
-            if (cur) redoStack.push(cur);
-            const prev = undoStack.pop();
-            restoreFromSnapshot(prev);
-            refreshGrid(); // 恢复后重绘网格
+            const cur = captureSnapshot(); if (cur) redoStack.push(cur);
+            const prev = undoStack.pop(); restoreFromSnapshot(prev);
+            refreshGrid();
         }
-        
         function redo() {
             if (redoStack.length === 0) return;
             const next = redoStack.pop();
-            const cur = captureSnapshot();
-            if (cur) undoStack.push(cur);
+            const cur = captureSnapshot(); if (cur) undoStack.push(cur);
             restoreFromSnapshot(next);
             refreshGrid();
         }
-        
         function clearCanvas() {
-            ctx.fillStyle = currentBgColor;
-            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-            undoStack = [];
-            redoStack = [];
-            saveToUndoImmediate();
+            ctx.fillStyle = currentBgColor; ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+            undoStack = []; redoStack = []; saveToUndoImmediate();
             refreshGrid();
         }
-        
         function setBackgroundColor(newColor) {
             if (newColor === currentBgColor) return;
             const snap = captureSnapshot();
             currentBgColor = newColor;
-            ctx.fillStyle = currentBgColor;
-            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+            ctx.fillStyle = currentBgColor; ctx.fillRect(0, 0, canvasWidth, canvasHeight);
             if (snap) ctx.drawImage(snap, 0, 0);
             saveToUndoImmediate();
             refreshGrid();
         }
         
-        // 颜色历史
+        // 新增：画布翻转（水平/垂直）
+        function flipHorizontal() {
+            const snap = captureSnapshot();
+            if (!snap) return;
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+            ctx.save();
+            ctx.translate(canvasWidth, 0);
+            ctx.scale(-1, 1);
+            ctx.drawImage(snap, 0, 0);
+            ctx.restore();
+            saveToUndoImmediate();
+            refreshGrid();
+        }
+        function flipVertical() {
+            const snap = captureSnapshot();
+            if (!snap) return;
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+            ctx.save();
+            ctx.translate(0, canvasHeight);
+            ctx.scale(1, -1);
+            ctx.drawImage(snap, 0, 0);
+            ctx.restore();
+            saveToUndoImmediate();
+            refreshGrid();
+        }
+        
+        // 新增：导出透明背景 PNG
+        function saveAsTransparent() {
+            // 临时保存当前背景色
+            const originalBg = currentBgColor;
+            // 临时将画布背景变为透明（注意：背景色是单独绘制的，需要重新绘制画布内容但不绘制背景）
+            const snapshot = captureSnapshot();
+            if (!snapshot) return;
+            // 创建一个临时画布，先绘制透明背景，再绘制绘画内容
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvasWidth;
+            tempCanvas.height = canvasHeight;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.clearRect(0, 0, canvasWidth, canvasHeight); // 透明背景
+            tempCtx.drawImage(snapshot, 0, 0);
+            // 导出
+            try {
+                const link = document.createElement('a');
+                link.download = `sketch_transparent_${Date.now()}.png`;
+                link.href = tempCanvas.toDataURL('image/png');
+                link.click();
+            } catch(e) { console.warn("导出失败"); }
+        }
+
+        function rotateCanvas(degrees) {
+            saveToUndoImmediate(); // 保存当前状态
+            // 创建一个临时画布
+            const tempCanvas = document.createElement('canvas');
+            let newWidth, newHeight;
+            if (degrees === 90 || degrees === -90 || degrees === 270) {
+                newWidth = canvasHeight;
+                newHeight = canvasWidth;
+            } else {
+                newWidth = canvasWidth;
+                newHeight = canvasHeight;
+            }
+            tempCanvas.width = newWidth;
+            tempCanvas.height = newHeight;
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            // 旋转绘制
+            tempCtx.save();
+            tempCtx.translate(newWidth/2, newHeight/2);
+            tempCtx.rotate(degrees * Math.PI / 180);
+            tempCtx.drawImage(sketchCanvas, -canvasWidth/2, -canvasHeight/2);
+            tempCtx.restore();
+            
+            // 调整主画布尺寸
+            canvasWidth = newWidth;
+            canvasHeight = newHeight;
+            sketchCanvas.width = canvasWidth;
+            sketchCanvas.height = canvasHeight;
+            gridCanvas.width = canvasWidth;
+            gridCanvas.height = canvasHeight;
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+            ctx.drawImage(tempCanvas, 0, 0);
+            
+            refreshGrid();
+            // 旋转后可能需要重新调整背景色? 不需要，背景色已在临时画布中保留。
+            // 但注意：旋转后画布内容可能超出边界？不会，因为已经交换宽高。
+        }
+
+        // 应用滤镜（可撤销）
+        function applyFilter(filterType) {
+            // 保存当前画布到撤销栈（不通过绘画，手动保存）
+            saveToUndoImmediate(); // 先保存当前状态
+            const imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
+            const data = imageData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                let r = data[i];
+                let g = data[i+1];
+                let b = data[i+2];
+                if (filterType === 'grayscale') {
+                    const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+                    data[i] = data[i+1] = data[i+2] = gray;
+                } else if (filterType === 'sepia') {
+                    let tr = r, tg = g, tb = b;
+                    data[i] = tr * 0.393 + tg * 0.769 + tb * 0.189;
+                    data[i+1] = tr * 0.349 + tg * 0.686 + tb * 0.168;
+                    data[i+2] = tr * 0.272 + tg * 0.534 + tb * 0.131;
+                } else if (filterType === 'invert') {
+                    data[i] = 255 - r;
+                    data[i+1] = 255 - g;
+                    data[i+2] = 255 - b;
+                }
+            }
+            ctx.putImageData(imageData, 0, 0);
+            refreshGrid();
+            // 滤镜操作后已经调用 saveToUndoImmediate 保存了状态，不需要额外保存
+        }
+        
+        // ========== 7. 颜色历史 ==========
         let colorHistory = ['#f3b33d'];
         function addColorToHistory(color) {
             if (!color) return;
@@ -847,19 +799,14 @@
             });
         }
         
-        // 坐标转换
+        // ========== 8. 事件处理 ==========
         function getCoords(e) {
             const rect = sketchCanvas.getBoundingClientRect();
             const sx = sketchCanvas.width / rect.width;
             const sy = sketchCanvas.height / rect.height;
             let cx, cy;
-            if (e.touches) {
-                cx = e.touches[0].clientX;
-                cy = e.touches[0].clientY;
-            } else {
-                cx = e.clientX;
-                cy = e.clientY;
-            }
+            if (e.touches) { cx = e.touches[0].clientX; cy = e.touches[0].clientY; }
+            else { cx = e.clientX; cy = e.clientY; }
             let x = (cx - rect.left) * sx;
             let y = (cy - rect.top) * sy;
             x = Math.min(Math.max(x, 0), sketchCanvas.width);
@@ -867,29 +814,12 @@
             return { x, y };
         }
         
-        let lastMovePoint = { x: 0, y: 0 };
-        
         function onMouseDown(e) {
             e.preventDefault();
             const { x, y } = getCoords(e);
-            lastMovePoint = { x, y };
-            if (eyedropperActive) {
-                pickColorAt(x, y);
-                eyedropperActive = false;
-                document.getElementById('eyedropperBtn').classList.remove('active');
-                return;
-            }
-            if (stickerMode && activeSticker) {
-                placeSticker(activeSticker, x, y);
-                refreshGrid();
-                return;
-            }
-            if (shapeMode) {
-                shapeStartX = x;
-                shapeStartY = y;
-                shapeDrawing = true;
-                return;
-            }
+            if (eyedropperActive) { pickColorAt(x, y); eyedropperActive=false; document.getElementById('eyedropperBtn').classList.remove('active'); return; }
+            if (stickerMode && activeSticker) { placeSticker(activeSticker, x, y); refreshGrid(); return; }
+            if (shapeMode) { shapeStartX=x; shapeStartY=y; shapeDrawing=true; return; }
             drawing = true;
             lastX = x; lastY = y;
             lastTime = performance.now();
@@ -898,10 +828,8 @@
             drawBrushDotWithSymmetry(x, y, brushSize, col, currentBrush, eraserMode, 0.3, 0);
             refreshGrid();
         }
-        
         function onMouseMove(e) {
             const { x, y } = getCoords(e);
-            lastMovePoint = { x, y };
             if (shapeDrawing) {
                 if (undoStack.length) restoreFromSnapshot(undoStack[undoStack.length-1]);
                 drawShapePreview(shapeStartX, shapeStartY, x, y, shapeMode);
@@ -918,7 +846,6 @@
                 refreshGrid();
             }
         }
-        
         function onMouseUp(e) {
             if (shapeDrawing) {
                 const { x, y } = getCoords(e);
@@ -933,35 +860,37 @@
                 refreshGrid();
             }
         }
-        
-        function resizeCanvas() {
-            canvasWidth = window.innerWidth;
-            canvasHeight = window.innerHeight;
-            sketchCanvas.width = canvasWidth;
-            sketchCanvas.height = canvasHeight;
-            gridCanvas.width = canvasWidth;
-            gridCanvas.height = canvasHeight;
-            ctx.fillStyle = currentBgColor;
-            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-            undoStack = [];
-            redoStack = [];
-            saveToUndoImmediate();
-            refreshGrid();
+
+        // 沿线段绘制笔刷点（使用当前笔刷设置）
+        function drawBrushAlongLine(x0, y0, x1, y1, brush, color, size, isEraser) {
+            const dist = Math.hypot(x1 - x0, y1 - y0);
+            if (dist < 0.1) return;
+            const steps = Math.max(2, Math.floor(dist / 2));
+            for (let step = 0; step <= steps; step++) {
+                const t = step / steps;
+                const cx = x0 + (x1 - x0) * t;
+                const cy = y0 + (y1 - y0) * t;
+                drawBrushDot(cx, cy, size, color, brush, isEraser, 0.3, 0);
+            }
         }
         
-        // UI 初始化与工具栏折叠
+        // ========== 9. UI 初始化 ==========
         function setupUI() {
             const container = document.getElementById('toolbarContainer');
             const toggleBtn = document.getElementById('toggleToolbarBtn');
             toggleBtn.addEventListener('click', () => {
                 container.classList.toggle('collapsed');
-                const isCollapsed = container.classList.contains('collapsed');
-                toggleBtn.textContent = isCollapsed ? '◀' : '▶';
+                toggleBtn.textContent = container.classList.contains('collapsed') ? '◀' : '▶';
             });
             
+            // 笔刷
             const brushes = document.querySelectorAll('.brush-icon');
             brushes.forEach(b => {
                 b.addEventListener('click', () => {
+                    if (shapeMode) {
+                        shapeMode = null;
+                        document.querySelectorAll('.shape-btn').forEach(s => s.classList.remove('active'));
+                    }
                     if (eraserMode) { eraserMode = false; document.getElementById('eraserBtn').classList.remove('active'); }
                     if (eyedropperActive) { eyedropperActive = false; document.getElementById('eyedropperBtn').classList.remove('active'); }
                     if (stickerMode) { stickerMode = false; document.getElementById('stickerToggleBtn').classList.remove('active'); document.getElementById('stickerPanel').classList.add('hidden'); activeSticker = null; }
@@ -973,12 +902,12 @@
                 });
             });
             
+            // 形状
             const shapeBtns = document.querySelectorAll('.shape-btn');
             shapeBtns.forEach(btn => {
                 btn.addEventListener('click', () => {
                     if (shapeMode === btn.getAttribute('data-shape')) {
-                        shapeMode = null;
-                        btn.classList.remove('active');
+                        shapeMode = null; btn.classList.remove('active');
                     } else {
                         shapeMode = btn.getAttribute('data-shape');
                         shapeBtns.forEach(s => s.classList.remove('active'));
@@ -986,69 +915,36 @@
                         if (eraserMode) { eraserMode = false; document.getElementById('eraserBtn').classList.remove('active'); }
                         if (eyedropperActive) { eyedropperActive = false; document.getElementById('eyedropperBtn').classList.remove('active'); }
                         if (stickerMode) { stickerMode = false; document.getElementById('stickerToggleBtn').classList.remove('active'); document.getElementById('stickerPanel').classList.add('hidden'); activeSticker = null; }
-                        brushes.forEach(i => i.classList.remove('active'));
+                        
                     }
                 });
             });
             
-            document.getElementById('symmetryHBtn').addEventListener('click', () => {
-                symmetryH = !symmetryH;
-                document.getElementById('symmetryHBtn').classList.toggle('active', symmetryH);
-            });
-            document.getElementById('symmetryVBtn').addEventListener('click', () => {
-                symmetryV = !symmetryV;
-                document.getElementById('symmetryVBtn').classList.toggle('active', symmetryV);
-            });
+            // 对称
+            document.getElementById('symmetryHBtn').addEventListener('click', () => { symmetryH = !symmetryH; document.getElementById('symmetryHBtn').classList.toggle('active', symmetryH); });
+            document.getElementById('symmetryVBtn').addEventListener('click', () => { symmetryV = !symmetryV; document.getElementById('symmetryVBtn').classList.toggle('active', symmetryV); });
             
-            // 网格开关
+            // 网格
             const gridBtn = document.getElementById('gridToggleBtn');
-            gridBtn.addEventListener('click', () => {
-                gridEnabled = !gridEnabled;
-                gridBtn.classList.toggle('active', gridEnabled);
-                refreshGrid();
-            });
+            gridBtn.addEventListener('click', () => { gridEnabled = !gridEnabled; gridBtn.classList.toggle('active', gridEnabled); refreshGrid(); });
             
+            // 吸管
             const eyedropper = document.getElementById('eyedropperBtn');
             eyedropper.addEventListener('click', () => {
-                if (eyedropperActive) {
-                    eyedropperActive = false;
-                    eyedropper.classList.remove('active');
-                } else {
-                    eyedropperActive = true;
-                    eyedropper.classList.add('active');
-                    if (eraserMode) { eraserMode = false; document.getElementById('eraserBtn').classList.remove('active'); }
-                    if (stickerMode) { stickerMode = false; document.getElementById('stickerToggleBtn').classList.remove('active'); document.getElementById('stickerPanel').classList.add('hidden'); activeSticker = null; }
-                    shapeMode = null;
-                    shapeBtns.forEach(s => s.classList.remove('active'));
-                    brushes.forEach(i => i.classList.remove('active'));
-                }
+                if (eyedropperActive) { eyedropperActive = false; eyedropper.classList.remove('active'); }
+                else { eyedropperActive = true; eyedropper.classList.add('active'); if (eraserMode) { eraserMode = false; document.getElementById('eraserBtn').classList.remove('active'); } if (stickerMode) { stickerMode = false; document.getElementById('stickerToggleBtn').classList.remove('active'); document.getElementById('stickerPanel').classList.add('hidden'); activeSticker = null; } shapeMode = null; shapeBtns.forEach(s => s.classList.remove('active')); brushes.forEach(i => i.classList.remove('active')); }
             });
             
+            // 贴纸
             const stickerToggle = document.getElementById('stickerToggleBtn');
             const stickerPanel = document.getElementById('stickerPanel');
             stickerToggle.addEventListener('click', () => {
-                if (stickerMode) {
-                    stickerMode = false;
-                    stickerToggle.classList.remove('active');
-                    stickerPanel.classList.add('hidden');
-                    activeSticker = null;
-                } else {
-                    stickerMode = true;
-                    stickerToggle.classList.add('active');
-                    stickerPanel.classList.remove('hidden');
-                    if (eraserMode) { eraserMode = false; document.getElementById('eraserBtn').classList.remove('active'); }
-                    if (eyedropperActive) { eyedropperActive = false; eyedropper.classList.remove('active'); }
-                    shapeMode = null;
-                    shapeBtns.forEach(s => s.classList.remove('active'));
-                    brushes.forEach(i => i.classList.remove('active'));
-                }
+                if (stickerMode) { stickerMode = false; stickerToggle.classList.remove('active'); stickerPanel.classList.add('hidden'); activeSticker = null; }
+                else { stickerMode = true; stickerToggle.classList.add('active'); stickerPanel.classList.remove('hidden'); if (eraserMode) { eraserMode = false; document.getElementById('eraserBtn').classList.remove('active'); } if (eyedropperActive) { eyedropperActive = false; eyedropper.classList.remove('active'); } shapeMode = null; shapeBtns.forEach(s => s.classList.remove('active')); brushes.forEach(i => i.classList.remove('active')); }
             });
-            document.querySelectorAll('.sticker-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    activeSticker = item.getAttribute('data-sticker');
-                });
-            });
+            document.querySelectorAll('.sticker-item').forEach(item => { item.addEventListener('click', () => { activeSticker = item.getAttribute('data-sticker'); }); });
             
+            // 橡皮
             const eraser = document.getElementById('eraserBtn');
             eraser.addEventListener('click', () => {
                 eraserMode = !eraserMode;
@@ -1056,15 +952,14 @@
                     eraser.classList.add('active');
                     if (eyedropperActive) { eyedropperActive = false; eyedropper.classList.remove('active'); }
                     if (stickerMode) { stickerMode = false; stickerToggle.classList.remove('active'); stickerPanel.classList.add('hidden'); activeSticker = null; }
-                    shapeMode = null;
-                    shapeBtns.forEach(s => s.classList.remove('active'));
-                    brushes.forEach(i => i.classList.remove('active'));
+                    shapeMode = null; shapeBtns.forEach(s => s.classList.remove('active')); brushes.forEach(i => i.classList.remove('active'));
                 } else {
                     eraser.classList.remove('active');
                     document.querySelector(`.brush-icon[data-brush="${currentBrush}"]`).classList.add('active');
                 }
             });
             
+            // 颜色
             const colorDots = document.querySelectorAll('.color-dot');
             const customPick = document.getElementById('customColorPicker');
             colorDots.forEach(d => {
@@ -1083,34 +978,106 @@
                 colorDots.forEach(c => c.classList.remove('active'));
                 addColorToHistory(currentColor);
             });
-            
-            const sizeSlider = document.getElementById('brushSizeSlider');
-            const sizeVal = document.getElementById('sizeValue');
-            sizeSlider.addEventListener('input', (e) => {
-                brushSize = parseInt(e.target.value);
-                sizeVal.innerText = brushSize;
+
+            // 平滑度调节
+            const smoothSlider = document.getElementById('smoothnessSlider');
+            const smoothSpan = document.getElementById('smoothnessValue');
+            smoothSlider.addEventListener('input', (e) => {
+                smoothness = parseFloat(e.target.value);
+                smoothSpan.innerText = smoothness.toFixed(1);
             });
             
+            // 笔刷大小
+            const sizeSlider = document.getElementById('brushSizeSlider');
+            const sizeVal = document.getElementById('sizeValue');
+            sizeSlider.addEventListener('input', (e) => { brushSize = parseInt(e.target.value); sizeVal.innerText = brushSize; });
+            
+            // 背景
             const bgPicker = document.getElementById('bgColorPicker');
             bgPicker.addEventListener('input', (e) => setBackgroundColor(e.target.value));
             document.getElementById('bgColorBtn').addEventListener('click', () => bgPicker.click());
             
+            // 操作按钮
             document.getElementById('clearCanvasBtn').addEventListener('click', () => clearCanvas());
             document.getElementById('saveCanvasBtn').addEventListener('click', () => {
-                try {
-                    const a = document.createElement('a');
-                    a.download = `sketch_${Date.now()}.png`;
-                    a.href = sketchCanvas.toDataURL();
-                    a.click();
-                } catch(e) {}
+                try { const a = document.createElement('a'); a.download = `sketch_${Date.now()}.png`; a.href = sketchCanvas.toDataURL(); a.click(); } catch(e) {}
             });
+            document.getElementById('saveTransparentBtn').addEventListener('click', () => saveAsTransparent());
             document.getElementById('undoBtn').addEventListener('click', () => undo());
             document.getElementById('redoBtn').addEventListener('click', () => redo());
+            
+            // 翻转按钮
+            document.getElementById('flipHBtn').addEventListener('click', () => flipHorizontal());
+            document.getElementById('flipVBtn').addEventListener('click', () => flipVertical());
+
+            // 透明导出
+            document.getElementById('saveTransparentBtn').addEventListener('click', () => {
+                try {
+                    // 临时保存当前画布内容
+                    const offCanvas = document.createElement('canvas');
+                    offCanvas.width = canvasWidth;
+                    offCanvas.height = canvasHeight;
+                    const offCtx = offCanvas.getContext('2d');
+                    
+                    // 绘制背景透明（不绘制背景色）
+                    offCtx.clearRect(0, 0, canvasWidth, canvasHeight);
+                    // 将主画布内容（只含笔触和贴纸）绘制到离屏画布，但主画布背景是不透明的，不能直接drawImage
+                    // 正确方法：只绘制 layers？由于我们没有独立图层，主画布包含背景色，直接drawImage会带背景。
+                    // 解决方案：重新绘制所有笔刷内容到透明画布？太复杂。
+                    // 简单高效：把当前画布中非背景色的像素保留，背景色变为透明。
+                    // 直接使用 getImageData 将背景色替换为透明。
+                    const imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
+                    const data = imageData.data;
+                    const bgR = parseInt(currentBgColor.slice(1,3), 16);
+                    const bgG = parseInt(currentBgColor.slice(3,5), 16);
+                    const bgB = parseInt(currentBgColor.slice(5,7), 16);
+                    for (let i = 0; i < data.length; i += 4) {
+                        if (Math.abs(data[i] - bgR) < 10 && Math.abs(data[i+1] - bgG) < 10 && Math.abs(data[i+2] - bgB) < 10) {
+                            data[i+3] = 0; // 完全透明
+                        }
+                    }
+                    offCtx.putImageData(imageData, 0, 0);
+                    
+                    const link = document.createElement('a');
+                    link.download = `sketch_transparent_${Date.now()}.png`;
+                    link.href = offCanvas.toDataURL('image/png');
+                    link.click();
+                } catch(e) { console.warn(e); }
+            });
+
+            const gridSpacingSlider = document.getElementById('gridSpacingSlider');
+            const gridSpacingSpan = document.getElementById('gridSpacingValue');
+            gridSpacingSlider.addEventListener('input', (e) => {
+                gridSpacing = parseInt(e.target.value);
+                gridSpacingSpan.innerText = gridSpacing;
+                if (gridEnabled) refreshGrid();
+            });
             
             window.addEventListener('keydown', (e) => {
                 if (e.ctrlKey && e.key === 'z') { e.preventDefault(); undo(); }
                 else if (e.ctrlKey && e.key === 'y') { e.preventDefault(); redo(); }
             });
+
+            // 滤镜按钮
+            document.getElementById('filterGrayscaleBtn').addEventListener('click', () => applyFilter('grayscale'));
+            document.getElementById('filterSepiaBtn').addEventListener('click', () => applyFilter('sepia'));
+            document.getElementById('filterInvertBtn').addEventListener('click', () => applyFilter('invert'));
+
+            // 旋转
+            document.getElementById('rotateLeftBtn').addEventListener('click', () => rotateCanvas(-90));
+            document.getElementById('rotateRightBtn').addEventListener('click', () => rotateCanvas(90));
+            document.getElementById('rotate180Btn').addEventListener('click', () => rotateCanvas(180));
+        }
+        
+        function resizeCanvas() {
+            canvasWidth = window.innerWidth;
+            canvasHeight = window.innerHeight;
+            sketchCanvas.width = canvasWidth; sketchCanvas.height = canvasHeight;
+            gridCanvas.width = canvasWidth; gridCanvas.height = canvasHeight;
+            ctx.fillStyle = currentBgColor; ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+            undoStack = []; redoStack = [];
+            saveToUndoImmediate();
+            refreshGrid();
         }
         
         function init() {
@@ -1128,9 +1095,7 @@
             window.addEventListener('touchmove', onMouseMove, { passive: false });
             window.addEventListener('touchend', onMouseUp);
             sketchCanvas.addEventListener('dragstart', e => e.preventDefault());
-            window.addEventListener('resize', () => {
-                resizeCanvas();
-            });
+            window.addEventListener('resize', () => { resizeCanvas(); });
         }
         init();
     })();
