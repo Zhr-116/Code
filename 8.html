@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>素描绘馆 · 质感画板</title>
+    <title>素描绘馆 · 全屏画板</title>
     <style>
         * {
             margin: 0;
@@ -20,84 +20,115 @@
             touch-action: none;
         }
 
-        .canvas-wrapper {
+        canvas {
             position: fixed;
             top: 0;
             left: 0;
-            right: 0;
-            bottom: 82px;
-            background: #eef2f5;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: auto;
+            width: 100%;
+            height: 100%;
+            display: block;
+            background: white;
+            cursor: crosshair;
         }
 
-        canvas {
-            display: block;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
-            cursor: crosshair;
-            background: white;
-            border-radius: 20px;
-            width: auto;
-            height: auto;
-            max-width: 95%;
-            max-height: 95%;
-            object-fit: contain;
+        /* 侧边工具栏容器（可收起） */
+        .toolbar-container {
+            position: fixed;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            transition: transform 0.25s ease;
+        }
+        .toolbar-container.collapsed {
+            transform: translateY(-50%) translateX(calc(100% - 48px));
+        }
+
+        .toggle-btn {
+            width: 48px;
+            height: 48px;
+            background: rgba(28, 32, 40, 0.9);
+            backdrop-filter: blur(12px);
+            border-radius: 40px 0 0 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            border: 1px solid rgba(255, 240, 180, 0.4);
+            border-right: none;
+            box-shadow: -2px 0 12px rgba(0,0,0,0.2);
+            color: #ffefcf;
+            transition: 0.1s;
+        }
+        .toggle-btn:active {
+            background: #ffd89a;
+            color: #2a2a2a;
         }
 
         .toolbar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(28, 32, 40, 0.94);
+            background: rgba(28, 32, 40, 0.92);
             backdrop-filter: blur(20px);
-            border-top: 1px solid rgba(255, 240, 180, 0.25);
-            padding: 8px 12px;
+            border-radius: 24px 0 0 24px;
+            padding: 12px 10px;
             display: flex;
-            flex-wrap: nowrap;
-            overflow-x: auto;
-            gap: 10px;
-            z-index: 200;
-            box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.15);
+            flex-direction: column;
+            gap: 16px;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 240, 180, 0.3);
+            border-right: none;
+            box-shadow: -4px 0 20px rgba(0, 0, 0, 0.2);
             scrollbar-width: thin;
-            -webkit-overflow-scrolling: touch;
         }
-
         .toolbar::-webkit-scrollbar {
-            height: 3px;
+            width: 3px;
         }
 
         .tool-group {
-            background: rgba(20, 25, 32, 0.65);
-            border-radius: 44px;
-            padding: 5px 12px;
             display: flex;
+            flex-direction: column;
             gap: 8px;
-            align-items: center;
-            flex-shrink: 0;
+            background: rgba(20, 25, 32, 0.6);
+            border-radius: 28px;
+            padding: 8px 8px;
         }
 
-        .brush-icon, .color-dot, .action-btn, .bg-btn, .eraser-btn, .history-color {
-            width: 40px;
-            height: 40px;
-            border-radius: 36px;
+        .group-title {
+            font-size: 10px;
+            color: #ffefcf;
+            text-align: center;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .icons-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .brush-icon, .color-dot, .action-btn, .bg-btn, .eraser-btn, .history-color, .shape-btn, .symmetry-btn, .tool-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 40px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 15px;
+            font-size: 18px;
             font-weight: 500;
             cursor: pointer;
             transition: 0.07s linear;
             background: rgba(230, 240, 250, 0.2);
             border: 1px solid rgba(255, 240, 180, 0.4);
             box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-            flex-shrink: 0;
             color: #f5f0e0;
         }
 
-        .brush-icon.active, .eraser-btn.active {
+        .brush-icon.active, .eraser-btn.active, .shape-btn.active, .symmetry-btn.active, .tool-btn.active {
             background: #ffd89a;
             border-color: #ffb65b;
             color: #2a2a2a;
@@ -115,13 +146,13 @@
             box-shadow: 0 0 10px #ffc285;
         }
         .history-color {
-            width: 34px;
-            height: 34px;
+            width: 40px;
+            height: 40px;
         }
 
         .custom-color-wrap {
-            width: 40px;
-            height: 40px;
+            width: 44px;
+            height: 44px;
         }
         .custom-color {
             width: 100%;
@@ -133,19 +164,17 @@
 
         .size-control {
             display: flex;
+            flex-direction: column;
             align-items: center;
             gap: 6px;
-            background: rgba(0,0,0,0.3);
-            padding: 4px 12px;
-            border-radius: 36px;
+            padding: 4px 0;
         }
         .size-control span {
             font-size: 11px;
             color: #ffefcf;
-            font-weight: 500;
         }
         input[type="range"] {
-            width: 100px;
+            width: 120px;
             height: 3px;
             -webkit-appearance: none;
             appearance: none;
@@ -164,89 +193,172 @@
             cursor: pointer;
         }
 
-        .action-btn {
+        /* 固定撤销/重做按钮组（右下角） */
+        .fixed-undo-redo {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 12px;
+            z-index: 210;
+            background: rgba(28, 32, 40, 0.8);
+            backdrop-filter: blur(16px);
+            padding: 8px 16px;
+            border-radius: 60px;
+            border: 1px solid rgba(255, 240, 180, 0.4);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .fixed-undo-redo .action-btn {
+            width: 48px;
+            height: 48px;
             background: #5f7f6e;
+            font-size: 24px;
         }
 
-        .info-tip {
+        .sticker-panel {
             position: fixed;
-            bottom: 92px;
             left: 12px;
-            background: rgba(0,0,0,0.5);
-            backdrop-filter: blur(8px);
-            padding: 4px 12px;
+            bottom: 20px;
+            background: rgba(28, 32, 40, 0.9);
+            backdrop-filter: blur(20px);
             border-radius: 32px;
-            font-size: 10px;
-            color: #eef3fc;
-            pointer-events: none;
-            z-index: 99;
-            white-space: nowrap;
-            font-weight: 400;
+            padding: 8px 12px;
+            display: flex;
+            gap: 10px;
+            z-index: 210;
+            border: 1px solid rgba(255,240,180,0.3);
+            transition: 0.2s;
         }
+        .sticker-panel.hidden {
+            display: none;
+        }
+        .sticker-item {
+            width: 48px;
+            height: 48px;
+            background: rgba(255,255,245,0.2);
+            border-radius: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            cursor: pointer;
+            transition: 0.05s;
+        }
+        .sticker-item:active { transform: scale(0.92); }
 
         @media (max-width: 700px) {
-            .canvas-wrapper { bottom: 76px; }
-            .toolbar { padding: 6px 10px; gap: 8px; }
-            .brush-icon, .color-dot, .action-btn, .bg-btn, .eraser-btn { width: 38px; height: 38px; font-size: 13px; }
-            .history-color { width: 32px; height: 32px; }
-            .size-control span { font-size: 10px; }
-            input[type="range"] { width: 85px; }
-            .info-tip { bottom: 86px; font-size: 9px; }
+            .brush-icon, .color-dot, .action-btn, .bg-btn, .eraser-btn, .history-color, .shape-btn, .symmetry-btn, .tool-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 16px;
+            }
+            .history-color { width: 36px; height: 36px; }
+            .toggle-btn { width: 44px; height: 44px; font-size: 22px; }
+            input[type="range"] { width: 100px; }
+            .sticker-item { width: 44px; height: 44px; font-size: 24px; }
+            .fixed-undo-redo { bottom: 16px; right: 16px; padding: 6px 12px; gap: 8px; }
+            .fixed-undo-redo .action-btn { width: 44px; height: 44px; font-size: 20px; }
         }
     </style>
 </head>
 <body>
-<div class="canvas-wrapper">
-    <canvas id="sketchCanvas"></canvas>
+<canvas id="sketchCanvas"></canvas>
+
+<!-- 贴纸面板 -->
+<div class="sticker-panel hidden" id="stickerPanel">
+    <div class="sticker-item" data-sticker="⭐">⭐</div>
+    <div class="sticker-item" data-sticker="❤️">❤️</div>
+    <div class="sticker-item" data-sticker="☁️">☁️</div>
+    <div class="sticker-item" data-sticker="🌸">🌸</div>
+    <div class="sticker-item" data-sticker="✨">✨</div>
+    <div class="sticker-item" data-sticker="🐱">🐱</div>
+    <div class="sticker-item" data-sticker="🎨">🎨</div>
 </div>
-<div class="toolbar">
-    <div class="tool-group">
-        <div class="brush-icon active" data-brush="watercolor">水彩</div>
-        <div class="brush-icon" data-brush="chineseBrush">毛笔</div>
-        <div class="brush-icon" data-brush="crayon">蜡笔</div>
-        <div class="brush-icon" data-brush="rainbow">彩虹</div>
-        <div class="brush-icon" data-brush="spray">喷枪</div>
-        <div class="brush-icon" data-brush="marker">马克笔</div>
-    </div>
-    <div class="tool-group">
-        <div class="color-dot" style="background: #2c2c2e;" data-color="#2c2c2e"></div>
-        <div class="color-dot" style="background: #d9733d;" data-color="#d9733d"></div>
-        <div class="color-dot" style="background: #4d7c8c;" data-color="#4d7c8c"></div>
-        <div class="color-dot" style="background: #a8786a;" data-color="#a8786a"></div>
-        <div class="color-dot" style="background: #6a9e7b;" data-color="#6a9e7b"></div>
-        <div class="color-dot active" style="background: #f3b33d;" data-color="#f3b33d"></div>
-        <div class="custom-color-wrap">
-            <input type="color" id="customColorPicker" class="custom-color" value="#f3b33d">
+
+<!-- 固定撤销/重做按钮 -->
+<div class="fixed-undo-redo">
+    <div class="action-btn" id="undoBtn">↩️</div>
+    <div class="action-btn" id="redoBtn">↪️</div>
+</div>
+
+<!-- 可收起侧边栏 -->
+<div class="toolbar-container collapsed" id="toolbarContainer">
+    <div class="toggle-btn" id="toggleToolbarBtn">◀</div>
+    <div class="toolbar" id="toolbar">
+        <div class="tool-group">
+            <div class="group-title">笔刷</div>
+            <div class="icons-row">
+                <div class="brush-icon active" data-brush="watercolor">水彩</div>
+                <div class="brush-icon" data-brush="chineseBrush">毛笔</div>
+                <div class="brush-icon" data-brush="crayon">蜡笔</div>
+                <div class="brush-icon" data-brush="rainbow">彩虹</div>
+                <div class="brush-icon" data-brush="spray">喷枪</div>
+                <div class="brush-icon" data-brush="marker">马克笔</div>
+            </div>
+        </div>
+        <div class="tool-group">
+            <div class="group-title">形状</div>
+            <div class="icons-row">
+                <div class="shape-btn" data-shape="line">直线</div>
+                <div class="shape-btn" data-shape="rect">矩形</div>
+                <div class="shape-btn" data-shape="circle">圆形</div>
+            </div>
+        </div>
+        <div class="tool-group">
+            <div class="group-title">对称</div>
+            <div class="icons-row">
+                <div class="symmetry-btn" id="symmetryHBtn">水平</div>
+                <div class="symmetry-btn" id="symmetryVBtn">垂直</div>
+            </div>
+        </div>
+        <div class="tool-group">
+            <div class="group-title">工具</div>
+            <div class="icons-row">
+                <div class="tool-btn" id="eyedropperBtn">吸管</div>
+                <div class="tool-btn" id="stickerToggleBtn">贴纸</div>
+                <div class="eraser-btn" id="eraserBtn">橡皮</div>
+            </div>
+        </div>
+        <div class="tool-group">
+            <div class="group-title">颜色</div>
+            <div class="icons-row">
+                <div class="color-dot" style="background: #2c2c2e;" data-color="#2c2c2e"></div>
+                <div class="color-dot" style="background: #d9733d;" data-color="#d9733d"></div>
+                <div class="color-dot" style="background: #4d7c8c;" data-color="#4d7c8c"></div>
+                <div class="color-dot" style="background: #a8786a;" data-color="#a8786a"></div>
+                <div class="color-dot" style="background: #6a9e7b;" data-color="#6a9e7b"></div>
+                <div class="color-dot active" style="background: #f3b33d;" data-color="#f3b33d"></div>
+                <div class="custom-color-wrap">
+                    <input type="color" id="customColorPicker" class="custom-color" value="#f3b33d">
+                </div>
+            </div>
+        </div>
+        <div class="tool-group">
+            <div class="group-title">最近</div>
+            <div class="icons-row" id="colorHistoryGroup"></div>
+        </div>
+        <div class="tool-group">
+            <div class="size-control">
+                <span>笔刷大小</span>
+                <input type="range" id="brushSizeSlider" min="3" max="52" value="18" step="1">
+                <span id="sizeValue" style="min-width: 28px;">18</span>
+            </div>
+        </div>
+        <div class="tool-group">
+            <div class="group-title">背景</div>
+            <div class="icons-row">
+                <div class="bg-btn" id="bgColorBtn" style="background: #fdf4e0;">选色</div>
+                <input type="color" id="bgColorPicker" value="#ffffff" style="width: 44px; height: 44px; border-radius: 40px; border: 2px solid rgba(255,255,200,0.8); background: white;">
+            </div>
+        </div>
+        <div class="tool-group">
+            <div class="group-title">操作</div>
+            <div class="icons-row">
+                <div class="action-btn" id="clearCanvasBtn">清空</div>
+                <div class="action-btn" id="saveCanvasBtn">保存</div>
+            </div>
         </div>
     </div>
-    <!-- 颜色历史区域 -->
-    <div class="tool-group" id="colorHistoryGroup">
-        <span style="font-size:10px; color:#ddd; margin-right:4px;">最近</span>
-        <!-- 动态生成5个历史色块 -->
-    </div>
-    <div class="tool-group">
-        <div class="eraser-btn" id="eraserBtn">橡皮</div>
-    </div>
-    <div class="tool-group">
-        <div class="size-control">
-            <span>大小</span>
-            <input type="range" id="brushSizeSlider" min="3" max="52" value="18" step="1">
-            <span id="sizeValue" style="min-width: 26px;">18</span>
-        </div>
-    </div>
-    <div class="tool-group">
-        <div class="bg-btn" id="bgColorBtn" style="background: #fdf4e0;">背景</div>
-        <input type="color" id="bgColorPicker" value="#ffffff" style="width: 40px; height: 40px; border-radius: 36px; border: 2px solid rgba(255,255,200,0.8); background: white;">
-    </div>
-    <div class="tool-group">
-        <div class="action-btn" id="undoBtn">↩️</div>
-        <div class="action-btn" id="redoBtn">↪️</div>
-        <div class="action-btn" id="clearCanvasBtn">清空</div>
-        <div class="action-btn" id="saveCanvasBtn">保存</div>
-    </div>
-</div>
-<div class="info-tip">
-  毛笔有笔锋 · 水彩晕染 · 撤销/重做 · 颜色历史
 </div>
 
 <script>
@@ -265,151 +377,39 @@
         let rainbowHue = 0;
         let currentBgColor = '#ffffff';
         
-        // ---------- 历史记录 (简化可靠版) ----------
-        let undoStack = [];    // 存储 Image 快照
+        let shapeMode = null;
+        let shapeStartX = 0, shapeStartY = 0;
+        let shapeDrawing = false;
+        let shiftKeyPressed = false;
+        
+        let symmetryH = false;
+        let symmetryV = false;
+        
+        let eyedropperActive = false;
+        let stickerMode = false;
+        let activeSticker = null;
+        
+        // 历史记录
+        let undoStack = [];
         let redoStack = [];
         const MAX_HISTORY = 50;
         let saveTimer = null;
         
-        // 获取当前画布快照
-        function captureSnapshot() {
-            if (canvasWidth === 0) return null;
-            const off = document.createElement('canvas');
-            off.width = canvasWidth;
-            off.height = canvasHeight;
-            const offCtx = off.getContext('2d');
-            offCtx.drawImage(canvas, 0, 0);
-            return off;
+        function getCenter() { return { x: canvasWidth / 2, y: canvasHeight / 2 }; }
+        function getMirrorPoints(x, y) {
+            const points = [{x, y}];
+            const center = getCenter();
+            if (symmetryH) points.push({x: center.x * 2 - x, y});
+            if (symmetryV) points.push({x, y: center.y * 2 - y});
+            if (symmetryH && symmetryV) points.push({x: center.x * 2 - x, y: center.y * 2 - y});
+            return points;
         }
         
-        // 从快照恢复
-        function restoreFromSnapshot(snapshot) {
-            if (!snapshot) return;
-            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-            ctx.drawImage(snapshot, 0, 0);
-        }
+        function getRainbowColor() { const hue = rainbowHue % 360; rainbowHue = (rainbowHue + 6) % 360; return `hsl(${hue}, 80%, 65%)`; }
         
-        // 保存当前状态到撤销栈（无条件保存，每次绘画结束调用）
-        function saveToUndo() {
-            // 清除之前的延迟保存
-            if (saveTimer) clearTimeout(saveTimer);
-            saveTimer = setTimeout(() => {
-                const snapshot = captureSnapshot();
-                if (!snapshot) return;
-                undoStack.push(snapshot);
-                if (undoStack.length > MAX_HISTORY) undoStack.shift();
-                // 新状态加入后清空重做栈
-                redoStack = [];
-                saveTimer = null;
-            }, 30);
-        }
-        
-        // 立即保存（用于清空、换背景等操作）
-        function saveToUndoImmediate() {
-            if (saveTimer) {
-                clearTimeout(saveTimer);
-                saveTimer = null;
-            }
-            const snapshot = captureSnapshot();
-            if (!snapshot) return;
-            undoStack.push(snapshot);
-            if (undoStack.length > MAX_HISTORY) undoStack.shift();
-            redoStack = [];
-        }
-        
-        function undo() {
-            if (undoStack.length <= 1) return;  // 至少保留一个初始状态
-            // 当前状态推入重做栈
-            const current = captureSnapshot();
-            if (current) redoStack.push(current);
-            // 弹出上一个状态并恢复
-            const prev = undoStack.pop();
-            restoreFromSnapshot(prev);
-        }
-        
-        function redo() {
-            if (redoStack.length === 0) return;
-            const next = redoStack.pop();
-            const current = captureSnapshot();
-            if (current) undoStack.push(current);
-            restoreFromSnapshot(next);
-        }
-        
-        // 初始化空白状态
-        function initHistory() {
-            saveToUndoImmediate(); // 空白状态入栈
-        }
-        
-        // 绘画结束时调用
-        function onDrawEnd() {
-            if (drawing) {
-                drawing = false;
-                saveToUndo();  // 一笔画结束保存状态
-            }
-        }
-        
-        // 清空画布（保留背景色）
-        function clearCanvas() {
-            ctx.fillStyle = currentBgColor;
-            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-            saveToUndoImmediate();
-        }
-        
-        // 更换背景色（保留绘画内容）
-        function setBackgroundColor(newColor) {
-            if (newColor === currentBgColor) return;
-            const snap = captureSnapshot();
-            currentBgColor = newColor;
-            ctx.fillStyle = currentBgColor;
-            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-            if (snap) ctx.drawImage(snap, 0, 0);
-            saveToUndoImmediate();
-        }
-        
-        // ---------- 颜色历史 ----------
-        let colorHistory = ['#f3b33d'];
-        function addColorToHistory(color) {
-            if (!color) return;
-            const idx = colorHistory.indexOf(color);
-            if (idx !== -1) colorHistory.splice(idx, 1);
-            colorHistory.unshift(color);
-            if (colorHistory.length > 5) colorHistory.pop();
-            renderColorHistory();
-        }
-        
-        function renderColorHistory() {
-            const container = document.getElementById('colorHistoryGroup');
-            if (!container) return;
-            const span = container.querySelector('span');
-            container.innerHTML = '';
-            container.appendChild(span);
-            colorHistory.forEach(color => {
-                const div = document.createElement('div');
-                div.className = 'history-color';
-                div.style.background = color;
-                div.setAttribute('data-color', color);
-                div.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    if (eraserMode) return;
-                    currentColor = color;
-                    document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
-                    document.getElementById('customColorPicker').value = color;
-                    addColorToHistory(color);
-                });
-                container.appendChild(div);
-            });
-        }
-        
-        // ---------- 笔刷核心（保持原有质感）----------
-        function getRainbowColor() {
-            const hue = rainbowHue % 360;
-            rainbowHue = (rainbowHue + 6) % 360;
-            return `hsl(${hue}, 80%, 65%)`;
-        }
-        
+        // 笔刷绘制函数（保持原有质感）
         function drawWatercolor(x, y, size, color) {
             ctx.save();
-            ctx.globalCompositeOperation = 'source-over';
             ctx.globalAlpha = 0.35;
             ctx.beginPath();
             ctx.ellipse(x, y, size * 0.85, size * 0.7, 0, 0, Math.PI*2);
@@ -429,7 +429,6 @@
             ctx.fill();
             ctx.restore();
         }
-        
         function drawChineseBrush(x, y, size, color, speed, angle) {
             ctx.save();
             ctx.globalAlpha = 0.88;
@@ -449,7 +448,6 @@
             }
             ctx.restore();
         }
-        
         function drawCrayon(x, y, size, color) {
             ctx.save();
             ctx.globalAlpha = 0.92;
@@ -468,7 +466,6 @@
             ctx.fill();
             ctx.restore();
         }
-        
         function drawRainbow(x, y, size) {
             ctx.save();
             const points = 7 + Math.floor(size / 7);
@@ -488,7 +485,6 @@
             ctx.fill();
             ctx.restore();
         }
-        
         function drawSpray(x, y, size, color) {
             ctx.save();
             const count = Math.floor(size * 2.2);
@@ -504,7 +500,6 @@
             }
             ctx.restore();
         }
-        
         function drawMarker(x, y, size, color) {
             ctx.save();
             ctx.globalAlpha = 0.7;
@@ -518,7 +513,6 @@
             ctx.fill();
             ctx.restore();
         }
-        
         function drawEraser(x, y, size) {
             ctx.save();
             ctx.globalCompositeOperation = 'source-over';
@@ -546,20 +540,12 @@
             }
         }
         
-        function getSpeedAngle(x0,y0,x1,y1, dt) {
-            const dx = x1-x0, dy = y1-y0;
-            const dist = Math.hypot(dx,dy);
-            const speed = dt>0 ? dist/dt : 0.2;
-            const angle = Math.atan2(dy,dx);
-            return { speed: Math.min(1.2, speed/9), angle };
-        }
-        
-        function drawLineSeg(x0,y0,x1,y1, size, color, brush, isEraser, dt) {
-            const dist = Math.hypot(x1-x0, y1-y0);
+        function drawLineSeg(x0, y0, x1, y1, size, color, brush, isEraser, dt) {
+            const dist = Math.hypot(x1 - x0, y1 - y0);
             if (dist < 0.8) {
                 let sp=0.3, ang=0;
                 if(brush==='chineseBrush' && !isEraser) { sp=0.3; }
-                drawBrushDot(x0,y0,size,color,brush,isEraser,sp,ang);
+                drawBrushDot(x0, y0, size, color, brush, isEraser, sp, ang);
                 return;
             }
             const steps = Math.max(2, Math.floor(dist/2.2));
@@ -573,115 +559,406 @@
                     const spd = dt>0 ? dist/dt : 0.3;
                     sp = Math.min(1.0, spd/12);
                 }
-                drawBrushDot(cx,cy,size,color,brush,isEraser,sp,ang);
+                drawBrushDot(cx, cy, size, color, brush, isEraser, sp, ang);
             }
         }
         
-        function onDrawing(x, y, now) {
-            if(!drawing) return;
-            let dt = Math.max(1, now - lastTime);
-            let finalColor = currentColor;
-            if(currentBrush === 'rainbow' && !eraserMode) finalColor = getRainbowColor();
-            drawLineSeg(lastX, lastY, x, y, brushSize, finalColor, currentBrush, eraserMode, dt);
-            lastX = x; lastY = y; lastTime = now;
+        function drawLineSegWithSymmetry(x0, y0, x1, y1, size, color, brush, isEraser, dt) {
+            const points0 = getMirrorPoints(x0, y0);
+            const points1 = getMirrorPoints(x1, y1);
+            for (let i = 0; i < points0.length; i++) {
+                drawLineSeg(points0[i].x, points0[i].y, points1[i].x, points1[i].y, size, color, brush, isEraser, dt);
+            }
         }
         
-        // 坐标转换（移动端适配）
+        function drawBrushDotWithSymmetry(x, y, size, color, brush, isEraser, speed, angle) {
+            const points = getMirrorPoints(x, y);
+            for (let p of points) {
+                if (p.x >= 0 && p.x <= canvasWidth && p.y >= 0 && p.y <= canvasHeight) {
+                    drawBrushDot(p.x, p.y, size, color, brush, isEraser, speed, angle);
+                }
+            }
+        }
+        
+        // 形状预览与提交
+        function drawShapePreview(x1, y1, x2, y2, shape) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.lineWidth = brushSize;
+            ctx.strokeStyle = currentColor;
+            ctx.globalAlpha = 0.7;
+            if (shape === 'line') {
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            } else if (shape === 'rect') {
+                let w = x2 - x1, h = y2 - y1;
+                if (shiftKeyPressed) {
+                    const side = Math.min(Math.abs(w), Math.abs(h));
+                    w = w > 0 ? side : -side;
+                    h = h > 0 ? side : -side;
+                }
+                ctx.strokeRect(x1, y1, w, h);
+            } else if (shape === 'circle') {
+                let rx = (x2 - x1)/2, ry = (y2 - y1)/2, cx = x1 + rx, cy = y1 + ry;
+                if (shiftKeyPressed) {
+                    const r = Math.min(Math.abs(rx), Math.abs(ry));
+                    rx = r;
+                    ry = r;
+                }
+                ctx.ellipse(cx, cy, Math.abs(rx), Math.abs(ry), 0, 0, Math.PI*2);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+        
+        function commitShape(x1, y1, x2, y2, shape) {
+            const points = getMirrorPoints(x1, y1);
+            const points2 = getMirrorPoints(x2, y2);
+            ctx.save();
+            ctx.lineWidth = brushSize;
+            ctx.strokeStyle = currentColor;
+            for (let i = 0; i < points.length; i++) {
+                const p1 = points[i], p2 = points2[i];
+                ctx.beginPath();
+                if (shape === 'line') {
+                    ctx.moveTo(p1.x, p1.y);
+                    ctx.lineTo(p2.x, p2.y);
+                    ctx.stroke();
+                } else if (shape === 'rect') {
+                    let w = p2.x - p1.x, h = p2.y - p1.y;
+                    if (shiftKeyPressed) {
+                        const side = Math.min(Math.abs(w), Math.abs(h));
+                        w = w > 0 ? side : -side;
+                        h = h > 0 ? side : -side;
+                    }
+                    ctx.strokeRect(p1.x, p1.y, w, h);
+                } else if (shape === 'circle') {
+                    let rx = (p2.x - p1.x)/2, ry = (p2.y - p1.y)/2, cx = p1.x + rx, cy = p1.y + ry;
+                    if (shiftKeyPressed) {
+                        const r = Math.min(Math.abs(rx), Math.abs(ry));
+                        rx = r;
+                        ry = r;
+                    }
+                    ctx.ellipse(cx, cy, Math.abs(rx), Math.abs(ry), 0, 0, Math.PI*2);
+                    ctx.stroke();
+                }
+            }
+            ctx.restore();
+            saveToUndoImmediate();
+        }
+        
+        // 吸管
+        function pickColorAt(x, y) {
+            if (x < 0 || y < 0 || x >= canvasWidth || y >= canvasHeight) return;
+            const pixel = ctx.getImageData(x, y, 1, 1).data;
+            const hex = '#' + ((1 << 24) + (pixel[0] << 16) + (pixel[1] << 8) + pixel[2]).toString(16).slice(1);
+            currentColor = hex;
+            document.getElementById('customColorPicker').value = hex;
+            document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+            addColorToHistory(hex);
+        }
+        
+        // 贴纸
+        function placeSticker(stickerChar, x, y) {
+            ctx.save();
+            ctx.font = `${brushSize * 1.5}px "Segoe UI Emoji", "Apple Color Emoji", system-ui`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillStyle = currentColor;
+            ctx.fillText(stickerChar, x, y);
+            ctx.restore();
+            saveToUndoImmediate();
+        }
+        
+        // 历史记录
+        function captureSnapshot() {
+            if (canvasWidth === 0) return null;
+            const off = document.createElement('canvas');
+            off.width = canvasWidth;
+            off.height = canvasHeight;
+            off.getContext('2d').drawImage(canvas, 0, 0);
+            return off;
+        }
+        function restoreFromSnapshot(snapshot) {
+            if (snapshot) {
+                ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+                ctx.drawImage(snapshot, 0, 0);
+            }
+        }
+        function saveToUndo() {
+            if (saveTimer) clearTimeout(saveTimer);
+            saveTimer = setTimeout(() => {
+                const snap = captureSnapshot();
+                if (snap) {
+                    undoStack.push(snap);
+                    if (undoStack.length > MAX_HISTORY) undoStack.shift();
+                    redoStack = [];
+                }
+                saveTimer = null;
+            }, 30);
+        }
+        function saveToUndoImmediate() {
+            if (saveTimer) clearTimeout(saveTimer);
+            const snap = captureSnapshot();
+            if (snap) {
+                undoStack.push(snap);
+                if (undoStack.length > MAX_HISTORY) undoStack.shift();
+                redoStack = [];
+            }
+        }
+        function undo() {
+            if (undoStack.length <= 1) return;
+            const cur = captureSnapshot();
+            if (cur) redoStack.push(cur);
+            const prev = undoStack.pop();
+            restoreFromSnapshot(prev);
+        }
+        function redo() {
+            if (redoStack.length === 0) return;
+            const next = redoStack.pop();
+            const cur = captureSnapshot();
+            if (cur) undoStack.push(cur);
+            restoreFromSnapshot(next);
+        }
+        function clearCanvas() {
+            ctx.fillStyle = currentBgColor;
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+            saveToUndoImmediate();
+        }
+        function setBackgroundColor(newColor) {
+            if (newColor === currentBgColor) return;
+            const snap = captureSnapshot();
+            currentBgColor = newColor;
+            ctx.fillStyle = currentBgColor;
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+            if (snap) ctx.drawImage(snap, 0, 0);
+            saveToUndoImmediate();
+        }
+        
+        // 颜色历史
+        let colorHistory = ['#f3b33d'];
+        function addColorToHistory(color) {
+            if (!color) return;
+            const idx = colorHistory.indexOf(color);
+            if (idx !== -1) colorHistory.splice(idx, 1);
+            colorHistory.unshift(color);
+            if (colorHistory.length > 5) colorHistory.pop();
+            renderColorHistory();
+        }
+        function renderColorHistory() {
+            const container = document.getElementById('colorHistoryGroup');
+            if (!container) return;
+            container.innerHTML = '';
+            colorHistory.forEach(color => {
+                const div = document.createElement('div');
+                div.className = 'history-color';
+                div.style.background = color;
+                div.setAttribute('data-color', color);
+                div.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (eraserMode || eyedropperActive) return;
+                    currentColor = color;
+                    document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+                    document.getElementById('customColorPicker').value = color;
+                    addColorToHistory(color);
+                });
+                container.appendChild(div);
+            });
+        }
+        
+        // 坐标转换
         function getCoords(e) {
             const rect = canvas.getBoundingClientRect();
             const sx = canvas.width / rect.width;
             const sy = canvas.height / rect.height;
             let cx, cy;
-            if(e.touches) { cx = e.touches[0].clientX; cy = e.touches[0].clientY; }
-            else { cx = e.clientX; cy = e.clientY; }
+            if (e.touches) {
+                cx = e.touches[0].clientX;
+                cy = e.touches[0].clientY;
+            } else {
+                cx = e.clientX;
+                cy = e.clientY;
+            }
             let x = (cx - rect.left) * sx;
             let y = (cy - rect.top) * sy;
-            x = Math.min(Math.max(x,0), canvas.width);
-            y = Math.min(Math.max(y,0), canvas.height);
+            x = Math.min(Math.max(x, 0), canvas.width);
+            y = Math.min(Math.max(y, 0), canvas.height);
             return { x, y };
         }
         
-        function start(e) {
+        // 事件处理
+        function onMouseDown(e) {
             e.preventDefault();
+            const { x, y } = getCoords(e);
+            if (eyedropperActive) {
+                pickColorAt(x, y);
+                eyedropperActive = false;
+                document.getElementById('eyedropperBtn').classList.remove('active');
+                return;
+            }
+            if (stickerMode && activeSticker) {
+                placeSticker(activeSticker, x, y);
+                return;
+            }
+            if (shapeMode) {
+                shapeStartX = x;
+                shapeStartY = y;
+                shapeDrawing = true;
+                return;
+            }
             drawing = true;
-            const {x,y} = getCoords(e);
             lastX = x; lastY = y;
             lastTime = performance.now();
             let col = currentColor;
-            if(currentBrush==='rainbow' && !eraserMode) col = getRainbowColor();
-            drawBrushDot(x,y,brushSize,col,currentBrush,eraserMode,0.3,0);
+            if (currentBrush === 'rainbow' && !eraserMode) col = getRainbowColor();
+            drawBrushDotWithSymmetry(x, y, brushSize, col, currentBrush, eraserMode, 0.3, 0);
         }
         
-        function move(e) {
-            if(!drawing) return;
-            e.preventDefault();
-            const {x,y} = getCoords(e);
-            onDrawing(x, y, performance.now());
+        function onMouseMove(e) {
+            if (shapeDrawing) {
+                const { x, y } = getCoords(e);
+                if (undoStack.length) restoreFromSnapshot(undoStack[undoStack.length-1]);
+                drawShapePreview(shapeStartX, shapeStartY, x, y, shapeMode);
+                return;
+            }
+            if (drawing) {
+                const { x, y } = getCoords(e);
+                let dt = Math.max(1, performance.now() - lastTime);
+                let finalColor = currentColor;
+                if (currentBrush === 'rainbow' && !eraserMode) finalColor = getRainbowColor();
+                drawLineSegWithSymmetry(lastX, lastY, x, y, brushSize, finalColor, currentBrush, eraserMode, dt);
+                lastX = x; lastY = y;
+                lastTime = performance.now();
+            }
         }
         
-        function end(e) {
-            if(drawing) {
+        function onMouseUp() {
+            if (shapeDrawing) {
+                shapeDrawing = false;
+                saveToUndoImmediate();
+                return;
+            }
+            if (drawing) {
                 drawing = false;
-                saveToUndo();  // 一笔画结束保存
+                saveToUndo();
             }
         }
         
-        // 画布尺寸自适应（保持内容）
-        function resizeCanvas() {
-            const wrap = document.querySelector('.canvas-wrapper');
-            const maxW = wrap.clientWidth - 24;
-            const maxH = wrap.clientHeight - 24;
-            const ratio = 4/3;
-            let w = maxW;
-            let h = w/ratio;
-            if(h > maxH) { h = maxH; w = h*ratio; }
-            w = Math.floor(w); h = Math.floor(h);
-            if(w===canvasWidth && h===canvasHeight) return;
-            const snap = captureSnapshot();
-            canvasWidth = w; canvasHeight = h;
-            canvas.width = w; canvas.height = h;
-            canvas.style.width = `${w}px`;
-            canvas.style.height = `${h}px`;
-            if(snap) {
-                ctx.fillStyle = currentBgColor;
-                ctx.fillRect(0,0,w,h);
-                ctx.drawImage(snap,0,0,w,h);
-            } else {
-                ctx.fillStyle = currentBgColor;
-                ctx.fillRect(0,0,w,h);
-            }
-            // 尺寸改变保存状态
-            saveToUndoImmediate();
-        }
-        
-        // UI 绑定
+        // UI 初始化与工具栏折叠
         function setupUI() {
+            const container = document.getElementById('toolbarContainer');
+            const toggleBtn = document.getElementById('toggleToolbarBtn');
+            toggleBtn.addEventListener('click', () => {
+                container.classList.toggle('collapsed');
+                const isCollapsed = container.classList.contains('collapsed');
+                toggleBtn.textContent = isCollapsed ? '◀' : '▶';
+            });
+            
             const brushes = document.querySelectorAll('.brush-icon');
             brushes.forEach(b => {
                 b.addEventListener('click', () => {
-                    if(eraserMode) { eraserMode=false; document.getElementById('eraserBtn').classList.remove('active'); }
-                    brushes.forEach(i=>i.classList.remove('active'));
+                    if (eraserMode) { eraserMode = false; document.getElementById('eraserBtn').classList.remove('active'); }
+                    if (eyedropperActive) { eyedropperActive = false; document.getElementById('eyedropperBtn').classList.remove('active'); }
+                    if (stickerMode) { stickerMode = false; document.getElementById('stickerToggleBtn').classList.remove('active'); document.getElementById('stickerPanel').classList.add('hidden'); activeSticker = null; }
+                    brushes.forEach(i => i.classList.remove('active'));
                     b.classList.add('active');
                     currentBrush = b.getAttribute('data-brush');
+                    shapeMode = null;
+                    document.querySelectorAll('.shape-btn').forEach(s => s.classList.remove('active'));
                 });
             });
+            
+            const shapeBtns = document.querySelectorAll('.shape-btn');
+            shapeBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (shapeMode === btn.getAttribute('data-shape')) {
+                        shapeMode = null;
+                        btn.classList.remove('active');
+                    } else {
+                        shapeMode = btn.getAttribute('data-shape');
+                        shapeBtns.forEach(s => s.classList.remove('active'));
+                        btn.classList.add('active');
+                        if (eraserMode) { eraserMode = false; document.getElementById('eraserBtn').classList.remove('active'); }
+                        if (eyedropperActive) { eyedropperActive = false; document.getElementById('eyedropperBtn').classList.remove('active'); }
+                        if (stickerMode) { stickerMode = false; document.getElementById('stickerToggleBtn').classList.remove('active'); document.getElementById('stickerPanel').classList.add('hidden'); activeSticker = null; }
+                        brushes.forEach(i => i.classList.remove('active'));
+                    }
+                });
+            });
+            
+            document.getElementById('symmetryHBtn').addEventListener('click', () => {
+                symmetryH = !symmetryH;
+                document.getElementById('symmetryHBtn').classList.toggle('active', symmetryH);
+            });
+            document.getElementById('symmetryVBtn').addEventListener('click', () => {
+                symmetryV = !symmetryV;
+                document.getElementById('symmetryVBtn').classList.toggle('active', symmetryV);
+            });
+            
+            const eyedropper = document.getElementById('eyedropperBtn');
+            eyedropper.addEventListener('click', () => {
+                if (eyedropperActive) {
+                    eyedropperActive = false;
+                    eyedropper.classList.remove('active');
+                } else {
+                    eyedropperActive = true;
+                    eyedropper.classList.add('active');
+                    if (eraserMode) { eraserMode = false; document.getElementById('eraserBtn').classList.remove('active'); }
+                    if (stickerMode) { stickerMode = false; document.getElementById('stickerToggleBtn').classList.remove('active'); document.getElementById('stickerPanel').classList.add('hidden'); activeSticker = null; }
+                    shapeMode = null;
+                    shapeBtns.forEach(s => s.classList.remove('active'));
+                    brushes.forEach(i => i.classList.remove('active'));
+                }
+            });
+            
+            const stickerToggle = document.getElementById('stickerToggleBtn');
+            const stickerPanel = document.getElementById('stickerPanel');
+            stickerToggle.addEventListener('click', () => {
+                if (stickerMode) {
+                    stickerMode = false;
+                    stickerToggle.classList.remove('active');
+                    stickerPanel.classList.add('hidden');
+                    activeSticker = null;
+                } else {
+                    stickerMode = true;
+                    stickerToggle.classList.add('active');
+                    stickerPanel.classList.remove('hidden');
+                    if (eraserMode) { eraserMode = false; document.getElementById('eraserBtn').classList.remove('active'); }
+                    if (eyedropperActive) { eyedropperActive = false; eyedropper.classList.remove('active'); }
+                    shapeMode = null;
+                    shapeBtns.forEach(s => s.classList.remove('active'));
+                    brushes.forEach(i => i.classList.remove('active'));
+                }
+            });
+            document.querySelectorAll('.sticker-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    activeSticker = item.getAttribute('data-sticker');
+                });
+            });
+            
             const eraser = document.getElementById('eraserBtn');
             eraser.addEventListener('click', () => {
                 eraserMode = !eraserMode;
-                if(eraserMode) {
+                if (eraserMode) {
                     eraser.classList.add('active');
-                    brushes.forEach(i=>i.classList.remove('active'));
+                    if (eyedropperActive) { eyedropperActive = false; eyedropper.classList.remove('active'); }
+                    if (stickerMode) { stickerMode = false; stickerToggle.classList.remove('active'); stickerPanel.classList.add('hidden'); activeSticker = null; }
+                    shapeMode = null;
+                    shapeBtns.forEach(s => s.classList.remove('active'));
+                    brushes.forEach(i => i.classList.remove('active'));
                 } else {
                     eraser.classList.remove('active');
                     document.querySelector(`.brush-icon[data-brush="${currentBrush}"]`).classList.add('active');
                 }
             });
+            
             const colorDots = document.querySelectorAll('.color-dot');
             const customPick = document.getElementById('customColorPicker');
             colorDots.forEach(d => {
                 d.addEventListener('click', () => {
-                    if(eraserMode) return;
-                    colorDots.forEach(c=>c.classList.remove('active'));
+                    if (eraserMode || eyedropperActive) return;
+                    colorDots.forEach(c => c.classList.remove('active'));
                     d.classList.add('active');
                     currentColor = d.getAttribute('data-color');
                     customPick.value = currentColor;
@@ -689,59 +966,68 @@
                 });
             });
             customPick.addEventListener('input', (e) => {
-                if(eraserMode) return;
+                if (eraserMode || eyedropperActive) return;
                 currentColor = e.target.value;
-                colorDots.forEach(c=>c.classList.remove('active'));
+                colorDots.forEach(c => c.classList.remove('active'));
                 addColorToHistory(currentColor);
             });
+            
             const sizeSlider = document.getElementById('brushSizeSlider');
             const sizeVal = document.getElementById('sizeValue');
             sizeSlider.addEventListener('input', (e) => {
                 brushSize = parseInt(e.target.value);
                 sizeVal.innerText = brushSize;
             });
+            
             const bgPicker = document.getElementById('bgColorPicker');
             bgPicker.addEventListener('input', (e) => setBackgroundColor(e.target.value));
             document.getElementById('bgColorBtn').addEventListener('click', () => bgPicker.click());
+            
             document.getElementById('clearCanvasBtn').addEventListener('click', () => clearCanvas());
             document.getElementById('saveCanvasBtn').addEventListener('click', () => {
                 try {
-                    let a = document.createElement('a');
+                    const a = document.createElement('a');
                     a.download = `sketch_${Date.now()}.png`;
                     a.href = canvas.toDataURL();
                     a.click();
                 } catch(e) {}
             });
+            // 固定撤销/重做按钮
             document.getElementById('undoBtn').addEventListener('click', () => undo());
             document.getElementById('redoBtn').addEventListener('click', () => redo());
+            
             window.addEventListener('keydown', (e) => {
-                if (e.ctrlKey && e.key === 'z') {
-                    e.preventDefault();
-                    undo();
-                } else if (e.ctrlKey && e.key === 'y') {
-                    e.preventDefault();
-                    redo();
-                }
+                if (e.ctrlKey && e.key === 'z') { e.preventDefault(); undo(); }
+                else if (e.ctrlKey && e.key === 'y') { e.preventDefault(); redo(); }
             });
+        }
+        
+        function resizeCanvas() {
+            canvasWidth = window.innerWidth;
+            canvasHeight = window.innerHeight;
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+            ctx.fillStyle = currentBgColor;
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+            saveToUndoImmediate();
         }
         
         function init() {
             resizeCanvas();
             setupUI();
-            initHistory();      // 初始空白状态入栈
             renderColorHistory();
             addColorToHistory(currentColor);
-            
-            canvas.addEventListener('mousedown', start);
-            window.addEventListener('mousemove', move);
-            window.addEventListener('mouseup', end);
-            canvas.addEventListener('touchstart', start, {passive:false});
-            canvas.addEventListener('touchmove', move, {passive:false});
-            canvas.addEventListener('touchend', end);
-            canvas.addEventListener('touchcancel', end);
-            canvas.addEventListener('dragstart', e=>e.preventDefault());
-            let tid;
-            window.addEventListener('resize', () => { clearTimeout(tid); tid = setTimeout(resizeCanvas, 150); });
+            canvas.addEventListener('mousedown', onMouseDown);
+            window.addEventListener('mousemove', onMouseMove);
+            window.addEventListener('mouseup', onMouseUp);
+            canvas.addEventListener('touchstart', onMouseDown, { passive: false });
+            window.addEventListener('touchmove', onMouseMove, { passive: false });
+            window.addEventListener('touchend', onMouseUp);
+            canvas.addEventListener('dragstart', e => e.preventDefault());
+            window.addEventListener('resize', () => {
+                resizeCanvas();
+            });
+            saveToUndoImmediate();
         }
         init();
     })();
