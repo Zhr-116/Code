@@ -389,7 +389,7 @@
         let stickerMode = false;
         let activeSticker = null;
         
-        // 历史记录
+        // 历史记录（优化：确保初始状态存在，每笔绘画后保存）
         let undoStack = [];
         let redoStack = [];
         const MAX_HISTORY = 50;
@@ -645,7 +645,7 @@
                 }
             }
             ctx.restore();
-            saveToUndoImmediate();
+            saveToUndoImmediate(); // 形状提交后立即保存
         }
         
         // 吸管
@@ -671,7 +671,7 @@
             saveToUndoImmediate();
         }
         
-        // 历史记录
+        // ---------- 历史记录核心（修复版）----------
         function captureSnapshot() {
             if (canvasWidth === 0) return null;
             const off = document.createElement('canvas');
@@ -680,12 +680,26 @@
             off.getContext('2d').drawImage(canvas, 0, 0);
             return off;
         }
+        
         function restoreFromSnapshot(snapshot) {
             if (snapshot) {
                 ctx.clearRect(0, 0, canvasWidth, canvasHeight);
                 ctx.drawImage(snapshot, 0, 0);
             }
         }
+        
+        // 立即保存当前状态到撤销栈（清空重做栈）
+        function saveToUndoImmediate() {
+            if (saveTimer) clearTimeout(saveTimer);
+            const snap = captureSnapshot();
+            if (snap) {
+                undoStack.push(snap);
+                if (undoStack.length > MAX_HISTORY) undoStack.shift();
+                redoStack = [];
+            }
+        }
+        
+        // 延迟保存（用于连续绘画结束时）
         function saveToUndo() {
             if (saveTimer) clearTimeout(saveTimer);
             saveTimer = setTimeout(() => {
@@ -698,22 +712,15 @@
                 saveTimer = null;
             }, 30);
         }
-        function saveToUndoImmediate() {
-            if (saveTimer) clearTimeout(saveTimer);
-            const snap = captureSnapshot();
-            if (snap) {
-                undoStack.push(snap);
-                if (undoStack.length > MAX_HISTORY) undoStack.shift();
-                redoStack = [];
-            }
-        }
+        
         function undo() {
-            if (undoStack.length <= 1) return;
+            if (undoStack.length <= 1) return; // 至少保留一个初始状态
             const cur = captureSnapshot();
             if (cur) redoStack.push(cur);
             const prev = undoStack.pop();
             restoreFromSnapshot(prev);
         }
+        
         function redo() {
             if (redoStack.length === 0) return;
             const next = redoStack.pop();
@@ -721,11 +728,17 @@
             if (cur) undoStack.push(cur);
             restoreFromSnapshot(next);
         }
+        
+        // 清空画布（同时清空历史记录，使清空成为新的起点）
         function clearCanvas() {
             ctx.fillStyle = currentBgColor;
             ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-            saveToUndoImmediate();
+            // 清空所有历史，并保存当前空白状态作为唯一记录
+            undoStack = [];
+            redoStack = [];
+            saveToUndoImmediate(); // 保存空白状态
         }
+        
         function setBackgroundColor(newColor) {
             if (newColor === currentBgColor) return;
             const snap = captureSnapshot();
@@ -787,10 +800,13 @@
             return { x, y };
         }
         
-        // 事件处理
+        // 事件处理（优化形状结束时的坐标获取）
+        let lastMovePoint = { x: 0, y: 0 };
+        
         function onMouseDown(e) {
             e.preventDefault();
             const { x, y } = getCoords(e);
+            lastMovePoint = { x, y };
             if (eyedropperActive) {
                 pickColorAt(x, y);
                 eyedropperActive = false;
@@ -816,14 +832,14 @@
         }
         
         function onMouseMove(e) {
+            const { x, y } = getCoords(e);
+            lastMovePoint = { x, y };
             if (shapeDrawing) {
-                const { x, y } = getCoords(e);
                 if (undoStack.length) restoreFromSnapshot(undoStack[undoStack.length-1]);
                 drawShapePreview(shapeStartX, shapeStartY, x, y, shapeMode);
                 return;
             }
             if (drawing) {
-                const { x, y } = getCoords(e);
                 let dt = Math.max(1, performance.now() - lastTime);
                 let finalColor = currentColor;
                 if (currentBrush === 'rainbow' && !eraserMode) finalColor = getRainbowColor();
@@ -833,15 +849,16 @@
             }
         }
         
-        function onMouseUp() {
+        function onMouseUp(e) {
             if (shapeDrawing) {
+                const { x, y } = getCoords(e);
+                commitShape(shapeStartX, shapeStartY, x, y, shapeMode);
                 shapeDrawing = false;
-                saveToUndoImmediate();
                 return;
             }
             if (drawing) {
                 drawing = false;
-                saveToUndo();
+                saveToUndo(); // 延迟保存，确保连续绘画只记录一次
             }
         }
         
@@ -992,7 +1009,6 @@
                     a.click();
                 } catch(e) {}
             });
-            // 固定撤销/重做按钮
             document.getElementById('undoBtn').addEventListener('click', () => undo());
             document.getElementById('redoBtn').addEventListener('click', () => redo());
             
@@ -1009,6 +1025,9 @@
             canvas.height = canvasHeight;
             ctx.fillStyle = currentBgColor;
             ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+            // 重置历史（尺寸改变会清空内容，重新保存空白状态）
+            undoStack = [];
+            redoStack = [];
             saveToUndoImmediate();
         }
         
@@ -1017,6 +1036,9 @@
             setupUI();
             renderColorHistory();
             addColorToHistory(currentColor);
+            // 确保初始空白状态已保存
+            saveToUndoImmediate();
+            
             canvas.addEventListener('mousedown', onMouseDown);
             window.addEventListener('mousemove', onMouseMove);
             window.addEventListener('mouseup', onMouseUp);
@@ -1027,7 +1049,6 @@
             window.addEventListener('resize', () => {
                 resizeCanvas();
             });
-            saveToUndoImmediate();
         }
         init();
     })();
