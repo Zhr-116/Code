@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>致亲爱的姑姑</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(145deg, #fceaea 0%, #f9e2e7 40%, #f0d4de 100%);
+            font-family: 'Segoe UI', 'Quicksand', system-ui, -apple-system, sans-serif;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* 标题区 - 优雅现代 */
+        .title {
+            text-align: center;
+            padding: 40px 20px 20px;
+            position: relative;
+            z-index: 10;
+        }
+        .title h1 {
+            font-size: 48px;
+            font-weight: 600;
+            color: #8b3c4a;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            letter-spacing: -0.5px;
+            margin-bottom: 12px;
+        }
+        .title p {
+            font-size: 20px;
+            color: #9b6b72;
+            background: rgba(255,245,240,0.6);
+            display: inline-block;
+            padding: 6px 24px;
+            border-radius: 60px;
+            backdrop-filter: blur(4px);
+            font-weight: 500;
+        }
+
+        /* 蛋糕区域 - 完全沿用您原来的结构，未改动任何定位 */
+        .cake {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            cursor: pointer;
+            z-index: 20;
+            transition: transform 0.2s ease;
+            filter: drop-shadow(0 12px 18px rgba(0,0,0,0.2));
+        }
+        .cake:active {
+            transform: translateX(-50%) scale(0.98);
+        }
+
+        .cake-base {
+            width: 280px;
+            height: 60px;
+            background: #d4986a;
+            border-radius: 16px 16px 12px 12px;
+            box-shadow: inset 0 2px 6px #f5c5a3, 0 6px 12px rgba(0,0,0,0.1);
+            border-bottom: 3px solid #b06d42;
+        }
+        .cake-middle {
+            width: 240px;
+            height: 52px;
+            background: #f7aeb8;
+            border-radius: 14px 14px 10px 10px;
+            margin: 0 auto;
+            box-shadow: inset 0 2px 5px #ffd0d8, 0 4px 8px rgba(0,0,0,0.08);
+            border-bottom: 2px solid #dc8a97;
+        }
+        .cake-top {
+            width: 200px;
+            height: 48px;
+            background: #ff8da1;
+            border-radius: 14px 14px 10px 10px;
+            margin: 0 auto;
+            position: relative;
+            box-shadow: inset 0 1px 4px #ffc0cc, 0 3px 8px rgba(0,0,0,0.08);
+        }
+        .cake-cream {
+            position: absolute;
+            top: -10px;
+            left: 0;
+            width: 100%;
+            height: 16px;
+            background: #fff7f0;
+            border-radius: 12px 12px 6px 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .cake-fruit {
+            position: absolute;
+            top: -18px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        .strawberry {
+            background: radial-gradient(circle at 35% 35%, #f25e74, #d43f5a);
+            left: 18%;
+            box-shadow: 0 0 0 2px #fff5ed;
+        }
+        .blueberry {
+            background: radial-gradient(circle at 35% 35%, #8f6fbd, #604582);
+            right: 18%;
+            box-shadow: 0 0 0 2px #f3e9ff;
+        }
+        /* 额外加一个小水果 */
+        .cake-fruit.kiwi {
+            background: radial-gradient(circle at 35% 35%, #ffbc7a, #f5923e);
+            left: 50%;
+            transform: translateX(-50%);
+            width: 22px;
+            height: 22px;
+            top: -16px;
+        }
+
+        /* 蜡烛 - 完全保持您原来的负边距和相对定位 */
+        .candle {
+            width: 18px;
+            height: 62px;
+            background: linear-gradient(145deg, #fff4e6, #ffe0c0);
+            margin: -34px auto 0;
+            border-radius: 6px 6px 4px 4px;
+            position: relative;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        /* 烛芯 */
+        .candle::before {
+            content: "";
+            position: absolute;
+            top: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 2px;
+            height: 8px;
+            background: #5e3a2a;
+            border-radius: 1px;
+        }
+        /* 火焰 - 保持绝对定位相对蜡烛 */
+        .flame {
+            width: 24px;
+            height: 42px;
+            background: radial-gradient(circle, #ffec80, #ffa73a);
+            border-radius: 50% 50% 35% 35%;
+            position: absolute;
+            top: -48px;
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 0 20px 6px #ffbc6e;
+            animation: flicker 0.2s infinite alternate;
+            pointer-events: none;
+        }
+        @keyframes flicker {
+            0% { transform: translateX(-50%) scale(1); opacity: 0.95; width: 24px; height: 42px; }
+            100% { transform: translateX(-50%) scale(1.1); opacity: 1; width: 26px; height: 46px; }
+        }
+
+        /* 气球 - 更柔和的色彩，增加一点小尾巴爱心 */
+        .balloon {
+            position: absolute;
+            width: 80px;
+            height: 105px;
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            animation: float 8s infinite ease-in-out;
+            z-index: 5;
+            opacity: 0.85;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+        }
+        .balloon::after {
+            content: '❤️';
+            position: absolute;
+            bottom: -48px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 20px;
+            opacity: 0.6;
+        }
+        .balloon1 { background: radial-gradient(circle at 30% 35%, #ffccd5, #f79eb0); left: 8%; top: 20%; animation-delay: 0s; }
+        .balloon2 { background: radial-gradient(circle at 30% 35%, #fff3bf, #ffe0a3); left: 22%; top: 55%; animation-delay: 1.2s; }
+        .balloon3 { background: radial-gradient(circle at 30% 35%, #c5e0d4, #aed4c2); right: 22%; top: 30%; animation-delay: 0.8s; }
+        .balloon4 { background: radial-gradient(circle at 30% 35%, #e0ccf5, #c9afe8); right: 8%; top: 60%; animation-delay: 2s; }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-30px); }
+            100% { transform: translateY(0px); }
+        }
+
+        /* 弹窗 - 玻璃质感 */
+        .blessing-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(70, 40, 45, 0.5);
+            backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        .blessing-modal.show {
+            display: flex;
+            opacity: 1;
+        }
+        .modal-content {
+            background: #fffef9;
+            padding: 36px 28px;
+            border-radius: 48px 32px 48px 32px;
+            text-align: center;
+            width: 85%;
+            max-width: 400px;
+            box-shadow: 0 30px 40px rgba(0,0,0,0.25);
+            transform: scale(0.85);
+            opacity: 0;
+            transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.1), opacity 0.3s;
+            border: 1px solid rgba(255,200,210,0.8);
+        }
+        .blessing-modal.show .modal-content {
+            transform: scale(1);
+            opacity: 1;
+        }
+        .modal-content h2 {
+            color: #cf6f7e;
+            font-size: 32px;
+            margin-bottom: 16px;
+            font-weight: 600;
+            font-family: 'Segoe UI', cursive;
+        }
+        .modal-content p {
+            color: #5a3e44;
+            font-size: 18px;
+            line-height: 1.5;
+            margin-bottom: 28px;
+        }
+        .close-btn {
+            padding: 10px 28px;
+            background-color: #f2a2b2;
+            color: white;
+            border: none;
+            border-radius: 60px;
+            font-size: 17px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        .close-btn:active {
+            transform: scale(0.96);
+            background-color: #e67e8f;
+        }
+
+        /* 语音祝福按钮 (替换原来的音乐按钮) */
+        .voice-btn {
+            position: fixed;
+            bottom: 28px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: rgba(255, 245, 240, 0.9);
+            backdrop-filter: blur(4px);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+            z-index: 99;
+            transition: 0.2s;
+        }
+        .voice-btn:active {
+            transform: scale(0.92);
+        }
+
+        /* 点击提示 */
+        .tap-hint {
+            position: absolute;
+            bottom: 130px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 14px;
+            color: #b57a7a;
+            background: rgba(255,245,240,0.7);
+            width: fit-content;
+            margin: 0 auto;
+            padding: 5px 20px;
+            border-radius: 40px;
+            backdrop-filter: blur(4px);
+            pointer-events: none;
+            z-index: 15;
+            font-weight: 500;
+        }
+
+        @media (max-width: 550px) {
+            .title h1 { font-size: 36px; }
+            .cake-base { width: 250px; height: 54px; }
+            .cake-middle { width: 215px; height: 48px; }
+            .cake-top { width: 180px; height: 44px; }
+            .candle { height: 56px; margin-top: -30px; }
+            .flame { top: -44px; width: 22px; height: 38px; }
+            .tap-hint { bottom: 110px; font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="title">
+        <h1>✨ 祝亲爱的姑姑生日快乐！ ✨</h1>
+        <p>多喜乐，少烦忧 🎉</p>
+    </div>
+
+    <!-- 气球 -->
+    <div class="balloon balloon1"></div>
+    <div class="balloon balloon2"></div>
+    <div class="balloon balloon3"></div>
+    <div class="balloon balloon4"></div>
+
+    <!-- 蛋糕 - 完全保留您正确的结构，只增加了一个小水果kiwi（无伤大雅） -->
+    <div class="cake" id="birthdayCake">
+        <div class="candle">
+            <div class="flame"></div>
+        </div>
+        <div class="cake-top">
+            <div class="cake-cream"></div>
+            <div class="cake-fruit strawberry"></div>
+            <div class="cake-fruit blueberry"></div>
+            <div class="cake-fruit kiwi"></div>   <!-- 额外小装饰，不影响原有逻辑 -->
+        </div>
+        <div class="cake-middle"></div>
+        <div class="cake-base"></div>
+    </div>
+    <div class="tap-hint">🎂 轻点蛋糕，接收祝福 🎂</div>
+
+    <!-- 弹窗 -->
+    <div class="blessing-modal" id="blessingModal">
+        <div class="modal-content">
+            <h2>🎂 亲爱的姑姑 🎂</h2>
+            <p>岁岁常欢愉，年年皆胜意。<br>
+            岁月沉香，温柔相伴。愿姑姑往后的日子，无琐事扰心，有岁月温柔，三餐有味，四季安然，生日快乐，永远优雅从容！💖<br>
+            爱你哟🌹</p>
+            <button class="close-btn" id="closeBtn">收下生日祝福</button>
+        </div>
+    </div>
+
+    <!-- 语音按钮 -->
+    <button class="voice-btn" id="voiceBtn">🎙️</button>
+
+    <script>
+        // --------------------------------------------------------------
+        // 原生 Canvas 礼花（不依赖外链，只在点击蛋糕时触发一次）
+        // --------------------------------------------------------------
+        (function() {
+            const canvas = document.createElement('canvas');
+            canvas.style.position = 'fixed';
+            canvas.style.top = '0';
+            canvas.style.left = '0';
+            canvas.style.width = '100%';
+            canvas.style.height = '100%';
+            canvas.style.pointerEvents = 'none';
+            canvas.style.zIndex = '9999';
+            document.body.appendChild(canvas);
+            const ctx = canvas.getContext('2d');
+            let width = window.innerWidth, height = window.innerHeight;
+            let particles = [], animId = null;
+
+            function resizeCanvas() {
+                width = window.innerWidth;
+                height = window.innerHeight;
+                canvas.width = width;
+                canvas.height = height;
+            }
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+
+            function random(min, max) { return min + Math.random() * (max - min); }
+
+            class Particle {
+                constructor(x, y, color, size, vx, vy, gravity, alphaDecay) {
+                    this.x = x; this.y = y; this.color = color; this.size = size;
+                    this.vx = vx; this.vy = vy; this.gravity = gravity;
+                    this.alpha = 1; this.alphaDecay = alphaDecay;
+                }
+                update() {
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    this.vy += this.gravity;
+                    this.alpha -= this.alphaDecay;
+                }
+                draw() {
+                    ctx.save();
+                    ctx.globalAlpha = this.alpha;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fillStyle = this.color;
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+
+            function burst(x, y, intense) {
+                if (animId) cancelAnimationFrame(animId);
+                particles = [];
+                const count = intense ? 160 : 70;
+                const colors = intense 
+                    ? ['#ffb7c5', '#fcd9b8', '#ffe5a3', '#e2bbe9', '#ff99aa', '#ffd966']
+                    : ['#ffc6cd', '#fee2bf', '#e9d1fc', '#fbc2c2'];
+                for (let i = 0; i < count; i++) {
+                    const angle = random(0, Math.PI * 2);
+                    const speed = random(2, 8);
+                    const vx = Math.cos(angle) * speed * (intense ? 1.3 : 0.9);
+                    const vy = Math.sin(angle) * speed * (intense ? 1.3 : 0.9);
+                    const size = random(3, 7);
+                    const color = colors[Math.floor(Math.random() * colors.length)];
+                    const gravity = random(0.1, 0.28);
+                    const alphaDecay = random(0.008, 0.018);
+                    particles.push(new Particle(x, y, color, size, vx, vy, gravity, alphaDecay));
+                }
+                function animate() {
+                    ctx.clearRect(0, 0, width, height);
+                    let alive = false;
+                    for (let p of particles) {
+                        if (p.alpha > 0) {
+                            p.update();
+                            p.draw();
+                            alive = true;
+                        }
+                    }
+                    if (alive) animId = requestAnimationFrame(animate);
+                    else cancelAnimationFrame(animId);
+                }
+                if (animId) cancelAnimationFrame(animId);
+                animId = requestAnimationFrame(animate);
+            }
+
+            window.fireConfetti = function(intense = true) {
+                let x = width / 2;
+                let y = height * 0.6;
+                burst(x, y, intense);
+            };
+        })();
+
+        // --------------------------------------------------------------
+        // 蛋糕点击 + 弹窗（礼花只在蛋糕点击时触发一次）
+        // --------------------------------------------------------------
+        const cake = document.getElementById('birthdayCake');
+        const modal = document.getElementById('blessingModal');
+        const closeModalBtn = document.getElementById('closeBtn');
+        let isOpening = false;
+
+        function openBlessing() {
+            if (isOpening) return;
+            isOpening = true;
+            // 绽放礼花（仅此一次）
+            if (window.fireConfetti) window.fireConfetti(true);
+            modal.classList.add('show');
+            setTimeout(() => { isOpening = false; }, 500);
+            // 轻声语音问候（可选，不抢气氛）
+            try {
+                if ('speechSynthesis' in window && !window.speechSynthesis.speaking) {
+                    let gentle = new SpeechSynthesisUtterance("姑姑，生日快乐！");
+                    gentle.lang = 'zh-CN';
+                    gentle.rate = 0.9;
+                    gentle.volume = 0.3;
+                    window.speechSynthesis.cancel();
+                    window.speechSynthesis.speak(gentle);
+                }
+            } catch(e) {}
+        }
+
+        function closeBlessing() {
+            modal.classList.remove('show');
+            // 关闭弹窗时绝对不触发礼花
+        }
+
+        cake.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openBlessing();
+        });
+        closeModalBtn.addEventListener('click', closeBlessing);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeBlessing();
+        });
+
+        // --------------------------------------------------------------
+        // 语音祝福（完整版，可独立触发）
+        // --------------------------------------------------------------
+        const voiceBtn = document.getElementById('voiceBtn');
+        let speaking = false;
+
+        function speakWish() {
+            if (!('speechSynthesis' in window)) {
+                alert("您的浏览器支持语音，但您可以读出这份祝福💕");
+                return;
+            }
+            if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+                window.speechSynthesis.cancel();
+                speaking = false;
+            }
+            const blessingText = "亲爱的姑姑，祝您生日快乐！愿您身体健康，笑口常开，每一天都充满阳光和喜悦，我们永远爱您！";
+            const utterance = new SpeechSynthesisUtterance(blessingText);
+            utterance.lang = 'zh-CN';
+            utterance.rate = 0.95;
+            utterance.pitch = 1.1;
+            utterance.onend = () => { speaking = false; };
+            utterance.onerror = () => { speaking = false; };
+            window.speechSynthesis.speak(utterance);
+            speaking = true;
+            // 语音按钮也带一点小礼花作为氛围，但不会影响弹窗的礼花逻辑
+            if (window.fireConfetti) window.fireConfetti(false);
+        }
+
+        voiceBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            speakWish();
+        });
+        voiceBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            speakWish();
+        });
+
+        // 页面载入小礼花（欢迎气氛，非蛋糕点击）
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                if (window.fireConfetti) window.fireConfetti(false);
+            }, 300);
+            // 让火焰动态更生动
+            const flame = document.querySelector('.flame');
+            if (flame) {
+                setInterval(() => {
+                    if (Math.random() > 0.6) {
+                        flame.style.transform = "translateX(-50%) rotate(2deg)";
+                    } else {
+                        flame.style.transform = "translateX(-50%) rotate(-2deg)";
+                    }
+                    setTimeout(() => { flame.style.transform = "translateX(-50%)"; }, 120);
+                }, 700);
+            }
+        });
+    </script>
+</body>
+</html>
