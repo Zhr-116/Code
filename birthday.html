@@ -505,14 +505,14 @@
 
         function speakWish() {
             if (!('speechSynthesis' in window)) {
-                alert("您的浏览器支持语音，但您可以读出这份祝福💕");
+                alert("您的浏览器不支持语音，但您可以读出这份祝福💕");
                 return;
             }
             if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
                 window.speechSynthesis.cancel();
                 speaking = false;
             }
-            const blessingText = "亲爱的姑姑，祝您生日快乐！愿您身体健康，笑口常开，每一天都充满阳光和喜悦，我们永远爱您！";
+            const blessingText = "亲爱的姑姑，祝您生日快乐！愿您身体健康，笑口常开，每一天都充满阳光和喜悦，永远爱你！";
             const utterance = new SpeechSynthesisUtterance(blessingText);
             utterance.lang = 'zh-CN';
             utterance.rate = 0.95;
